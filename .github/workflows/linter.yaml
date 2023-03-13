@@ -1,17 +1,25 @@
-name: Linter
+name: Lint
 
-on: push
+on:
+  push:
+    branches: [ main ]
+  pull_request:
 
 jobs:
   lint:
-    name: Lint code base
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-
-      - name: Run Linter
-        uses: github/super-linter@v4
-        env:
-          DEFAULT_BRANCH: main
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pylint
+      - name: Run linter
+        run: |
+          pylint **/*.py
