@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "image-processor"
+version = "0.1.0"
+description = "Image processor for the sensi app."
+authors = ["Francisco Costa <A48282@alunos.isel.pt>", "Teodosie Pienescu <A48267@alunos.isel.pt>", "Tiago Filipe <A48265@alunos.isel.pt>"]
+license = "LICENSE"
+readme = "README.md"
+packages = [{include = "image_processor", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.2.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
