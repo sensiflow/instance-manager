@@ -1,11 +1,19 @@
+"""Example module"""
+import dataclasses
 import rtsp.helpers as h
 
 
+
+@dataclasses.dataclass
 class Rtsp:
+    """
+        Example class
+    """
+    url: str
 
-    def __init__(self, url):
-        self.url = url
-        print("Example constructor: " + url)
 
-    def run(self):
-        h.rtsp_run(self.url)
+def run(rtsp_server: Rtsp) -> None:
+    """
+        Example function
+    """
+    h.rtsp_run(rtsp_server.url)

@@ -1,12 +1,15 @@
+"""Project entry point"""
 import rtsp.server as rtsp
 import rtsp.constants as const
 
-# Triggers the entire project
 
 def run():
+    """
+        Project Entry point
+    """
     rtsp_server = rtsp.Rtsp(const.RTSP_URL_EXAMPLE)
-    rtsp_server.run()
+    rtsp.run(rtsp_server)
 
-# Entry point
+
 if __name__ == "__main__":
     run()
