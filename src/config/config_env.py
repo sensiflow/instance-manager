@@ -13,21 +13,19 @@ class EnvironmentType(Enum):
     PROD = auto()
     DEV = auto()
     TEST = auto()
+    CI = auto()
 
 
 def get_environment_type() -> EnvironmentType:
     """Returns the environment type of the application."""
     env = os.getenv("ENVIRONMENT")
-    if env == "PROD":
-        return EnvironmentType.PROD
-    elif env == "DEV":
-        return EnvironmentType.DEV
-    elif env == "TEST":
-        return EnvironmentType.TEST
+    if env in EnvironmentType._member_names_:
+        print("Environment type: " + env)
+        return EnvironmentType[env]
     else:
         raise ValueError("The environment type is not supported."
                          + "Set the environment variable ENVIRONMENT to:"
-                         + "PROD, DEV, TEST")
+                         + "PROD, DEV, TEST, CI")
 
 
 def parse_config(env_type: EnvironmentType):
