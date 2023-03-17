@@ -1,3 +1,7 @@
+# Env and Configs
+configs/*.ini
+!configs/ci.ini
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
