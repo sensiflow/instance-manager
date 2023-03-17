@@ -20,7 +20,7 @@ pytest = "^7.2.2"
 
 [tool.pytest.ini_options]
 env = [
-    "D:ENVIRONMENT=CI" # D so it does not override the ci environment variable
+    "D:ENVIRONMENT=TEST" # D so it does not override the ci environment variable
 ]
 
 [build-system]
