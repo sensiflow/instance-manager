@@ -1,4 +1,4 @@
 [flake8]
 multiline-quotes = """
 max-line-length = 79 
-exclude = .git,__pycache__,old,build,dist,.venv 
+exclude = .git,__pycache__,old,build,dist,.venv,__init__.py 

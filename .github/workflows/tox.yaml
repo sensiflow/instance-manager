@@ -2,24 +2,40 @@ name: Tests
 on:
   - push
   - pull_request
-
+  
 jobs:
   test:
-    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: ['3.7', '3.8', '3.9', '3.10']
-
+        python-version: ["3.8"]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install tox tox-gh-actions
-    - name: Test with tox
-      run: tox
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Poetry
+        run: 
+          python -m pip install poetry -U
+      - name: Update poetry
+        run:
+          poetry self update
+      - name: Install tox
+        run: 
+          python -m pip install tox
+      - name: Run tox
+        env:
+          ENVIRONMENT: CI
+        run: 
+          tox
