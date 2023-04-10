@@ -1,0 +1,1 @@
+from src.rabbitmq.rabbitmq_handler import process_message
