@@ -1,7 +1,6 @@
 # Env and Configs
 configs/*.ini
 !configs/ci.ini
-.vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
