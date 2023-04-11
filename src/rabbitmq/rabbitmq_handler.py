@@ -1,27 +1,44 @@
 import aio_pika
 import logging
+import json
 
-logger = logging.Logger(__name__)
+from instance_manager.instance.instance_service import InstanceService
+from src.instance_manager.message import Message, Action
+from src.instance_manager.message.message_handler import message_handler
+
+logging.basicConfig(level=logging.DEBUG)
 
 
-async def process_message(channel, message) -> None:
+async def process_message(
+            channel, message, instance_service: InstanceService
+        ) -> None:
     """
     Callback function for processing received messages from RabbitMQ.
     """
-    # Your message processing logic here
+    message_body = message.body.decode()
+    message_dict = json.loads(message_body)
 
-    logger.info(f"Received message: {message} from channel: {channel}")
+    messageDTO = Message(
+        action=Action[message_dict["action"]],
+        device_id=message_dict["device_id"]
+    )
 
-    return 
+    logging.info(f"Received message: {messageDTO}")
+
+    await message_handler(messageDTO, instance_service)
+
+    return
 
 
-async def start_rabbitmq_consumer(consumer_info) -> None:
+async def start_rabbitmq_consumer(
+            consumer_info, instance_service: InstanceService
+        ) -> None:
     """
     Start RabbitMQ consumer.
     """
 
-    logger.info("Starting RabbitMQ consumer...")
-    logger.debug(f"Connection info: {consumer_info}")
+    logging.info("Starting RabbitMQ consumer...")
+    logging.debug(f"Connection info: {consumer_info}")
 
     rbt_user = consumer_info["user"]
     rbt_pass = consumer_info["password"]
@@ -30,7 +47,7 @@ async def start_rabbitmq_consumer(consumer_info) -> None:
 
     rabbit_url = f"amqp://{rbt_user}:{rbt_pass}@{rbt_host}:{rbt_port}/"
 
-    logger.debug(f"RabbitMQ Built URL: {rabbit_url}")
+    logging.debug(f"RabbitMQ Built URL: {rabbit_url}")
 
     connection = await aio_pika.connect_robust(rabbit_url)
 
@@ -48,4 +65,4 @@ async def start_rabbitmq_consumer(consumer_info) -> None:
         async with queue.iterator() as queue_iter:
             async for message in queue_iter:
                 async with message.process():
-                    await process_message(channel, message)
+                    await process_message(channel, message, instance_service)

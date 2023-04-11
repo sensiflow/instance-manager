@@ -9,9 +9,9 @@ from src.config import (
     DATABASE_SECTION,
     DATABASE_URL_KEY,
 )
-from src.instance_manager.instance_service import InstanceService
-from src.instance_manager.instance import Instance
-from src.instance_manager.instance_dao import InstanceDAOFactory
+from instance_manager.instance.instance_service import InstanceService
+from instance_manager.instance.instance import Instance
+from instance_manager.instance.instance_dao import InstanceDAOFactory
 from src.instance_manager.exception import InstanceNotFound, DomainLogicError
 
 
@@ -29,8 +29,6 @@ def manage_table(db_url):
                 """
                 create table if not exists instance(
                     id varchar(50) UNIQUE NOT null,
-                    name varchar(40) NOT null,
-                    description varchar(200),
                     status VARCHAR(255)
                     NOT NULL
                     CHECK (status IN ('ACTIVE', 'INACTIVE', 'PAUSED')),
@@ -44,7 +42,7 @@ def manage_table(db_url):
     yield
     with psycopg.connect(db_url) as conn:
         with conn.cursor() as cursor:
-            cursor.execute("DROP TABLE instances")
+            cursor.execute("DROP TABLE instance")
 
 
 @pytest.fixture(scope="session")
@@ -56,8 +54,6 @@ def test_create_instance(service, manage_table):
     created_at = datetime.now()
     instance = Instance(
         id="instance_device_2",
-        name="test_instance",
-        description="test_description",
         status="ACTIVE",
         created_at=created_at,
         updated_at=created_at,
@@ -67,8 +63,6 @@ def test_create_instance(service, manage_table):
     instance = service.get_instance(instance_id)
     expected_instance = Instance(
         id=instance_id,
-        name="test_instance",
-        description="test_description",
         status="ACTIVE",
         created_at=created_at,
         updated_at=created_at,
@@ -80,8 +74,6 @@ def test_create_instance(service, manage_table):
 def test_get_instance(service, manage_table):
     instance = Instance(
         id="instance_device_3",
-        name="test_instance",
-        description="test_description",
         status="ACTIVE",
         created_at=datetime.now(),
         updated_at=datetime.now(),
@@ -90,8 +82,6 @@ def test_get_instance(service, manage_table):
     retrieved_instance = service.get_instance(instance_id)
     expected_instance = Instance(
         id=instance_id,
-        name="test_instance",
-        description="test_description",
         status="ACTIVE",
         created_at=instance.created_at,
         updated_at=instance.updated_at,
@@ -102,14 +92,12 @@ def test_get_instance(service, manage_table):
 
 def test_get_non_existent_instance(service, manage_table):
     with pytest.raises(InstanceNotFound):
-        service.get_instance(-1)
+        service.get_instance("nonexistant")
 
 
 def test_update_instance(service, manage_table):
     instance = Instance(
         id="instance_device_4",
-        name="test_instance",
-        description="test_description",
         status="ACTIVE",
         created_at=datetime.now(),
         updated_at=datetime.now(),
@@ -117,8 +105,6 @@ def test_update_instance(service, manage_table):
     instance_id = service.create_instance(instance)
     new_instance = Instance(
         id=instance_id,
-        name="new_instance",
-        description="new_description",
         status="INACTIVE",
         created_at=instance.created_at,
         updated_at=datetime.now(),
@@ -131,8 +117,6 @@ def test_update_instance(service, manage_table):
 def test_update_non_existent_instance(service, manage_table):
     instance = Instance(
         id="nonexistant",
-        name="test_instance",
-        description="test_description",
         status="ACTIVE",
         created_at=datetime.now(),
         updated_at=datetime.now(),
@@ -141,11 +125,11 @@ def test_update_non_existent_instance(service, manage_table):
         service.update_instance(instance)
 
 
-def test_update_instance_with_updated_at_before_created_at(service, manage_table):
+def test_update_instance_with_updated_at_before_created_at(
+            service, manage_table
+        ):
     instance = Instance(
         id="instance_device_5",
-        name="test_instance",
-        description="test_description",
         status="ACTIVE",
         created_at=datetime.now(),
         updated_at=datetime.now(),
@@ -155,8 +139,6 @@ def test_update_instance_with_updated_at_before_created_at(service, manage_table
     with pytest.raises(DomainLogicError):
         new_instance = Instance(
             id=instance_id,
-            name="test_instance",
-            description="test_description",
             status="ACTIVE",
             created_at=instance.created_at,
             updated_at=instance.created_at - timedelta(days=1),
@@ -167,8 +149,6 @@ def test_update_instance_with_updated_at_before_created_at(service, manage_table
 def test_delete_instance(service, manage_table):
     instance = Instance(
         id="instance_device_6",
-        name="test_instance",
-        description="test_description",
         status="ACTIVE",
         created_at=datetime.now(),
         updated_at=datetime.now(),
