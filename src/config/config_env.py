@@ -35,8 +35,8 @@ def parse_config(env_type: EnvironmentType):
 
     if not os.path.exists(file_name):
         raise FileNotFoundError(
-            "Please provide a config file for the current environment: %s",
-            file_name
+            "Please provide a config file for the current environment: {}"
+            .format(file_name)
         )
 
     logger.info("Parsing config file: %s", file_name)

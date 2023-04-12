@@ -1,4 +1,5 @@
 from docker_manager import docker_init
+from docker_manager.docker_init import build_settings
 from src.config import (
     parse_config,
     get_environment_type,
@@ -35,12 +36,13 @@ async def main():
     docker_cfg = docker_init.get_docker_config(cfg)
     processing_mode = docker_cfg["processing_mode"]
     docker_init.docker_build_images(processing_mode)
+    processor_image_tag = build_settings(processing_mode)['tag']
 
     with ConnectionPool(db_url) as connection_manager:
         instance_service = InstanceService(
             connection_manager,
             InstanceDAOFactory(),
-            DockerApi()
+            DockerApi(processor_image_tag)
         )
         await start_rabbitmq_consumer(rabbit_cfg, instance_service)
 

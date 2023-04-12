@@ -13,7 +13,7 @@ from src.config import (
     DOCKER_PROCESSING_MODE_KEY,
     DOCKER_CUDA_VERSION_KEY
 )
-
+import logging
 
 class ProcessingMode(Enum):
     CPU = auto()
@@ -22,7 +22,7 @@ class ProcessingMode(Enum):
 
 def get_docker_config(cfg: ConfigParser):
     processing_mode = cfg.get(DOCKER_SECTION, DOCKER_PROCESSING_MODE_KEY)
-    mode = ProcessingMode.valueOf(processing_mode)
+    mode = ProcessingMode[processing_mode]
     if mode == ProcessingMode.CPU:
         return {
              "processing_mode": mode,
@@ -57,4 +57,10 @@ def build_settings(processing_mode: ProcessingMode):
 def docker_build_images(processing_mode: ProcessingMode):
     client = docker.from_env()
     build_args = build_settings(processing_mode)
+    if client.images.list(name=build_args["tag"]):
+        logging.log(logging.INFO, f"Image with tag {build_args['tag']} already exists, skipping build.")
+        return
+    logging.log(logging.INFO, f"Building image with tag {build_args['tag']},"
+                              f" please wait, this may take a while...")
     client.images.build(path=build_args["path"], tag=build_args["tag"])
+    logging.log(logging.INFO, f"Image built with tag {build_args['tag']}")
