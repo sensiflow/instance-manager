@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from psycopg_pool import ConnectionPool
 import psycopg
 
+from docker_manager.docker_api import DockerApi
 from src.config import (
     parse_config,
     get_environment_type,
@@ -10,7 +11,7 @@ from src.config import (
     DATABASE_URL_KEY,
 )
 from instance_manager.instance.instance_service import InstanceService
-from instance_manager.instance.instance import Instance
+from instance_manager.instance.instance import Instance, InstanceStatus
 from instance_manager.instance.instance_dao import InstanceDAOFactory
 from src.instance_manager.exception import InstanceNotFound, DomainLogicError
 
@@ -47,14 +48,18 @@ def manage_table(db_url):
 
 @pytest.fixture(scope="session")
 def service(db_url):
-    return InstanceService(ConnectionPool(db_url), InstanceDAOFactory())
+    return InstanceService(
+        ConnectionPool(db_url),
+        InstanceDAOFactory(),
+       # DockerApi( ), TODO: Mock DockerApi
+    )
 
 
 def test_create_instance(service, manage_table):
     created_at = datetime.now()
     instance = Instance(
         id="instance_device_2",
-        status="ACTIVE",
+        status=InstanceStatus.ACTIVE,
         created_at=created_at,
         updated_at=created_at,
     )
@@ -63,7 +68,7 @@ def test_create_instance(service, manage_table):
     instance = service.get_instance(instance_id)
     expected_instance = Instance(
         id=instance_id,
-        status="ACTIVE",
+        status=InstanceStatus.ACTIVE,
         created_at=created_at,
         updated_at=created_at,
     )
@@ -74,7 +79,7 @@ def test_create_instance(service, manage_table):
 def test_get_instance(service, manage_table):
     instance = Instance(
         id="instance_device_3",
-        status="ACTIVE",
+        status=InstanceStatus.ACTIVE,
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
@@ -82,7 +87,7 @@ def test_get_instance(service, manage_table):
     retrieved_instance = service.get_instance(instance_id)
     expected_instance = Instance(
         id=instance_id,
-        status="ACTIVE",
+        status=InstanceStatus.ACTIVE,
         created_at=instance.created_at,
         updated_at=instance.updated_at,
     )
@@ -98,14 +103,14 @@ def test_get_non_existent_instance(service, manage_table):
 def test_update_instance(service, manage_table):
     instance = Instance(
         id="instance_device_4",
-        status="ACTIVE",
+        status=InstanceStatus.ACTIVE,
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
     instance_id = service.create_instance(instance)
     new_instance = Instance(
         id=instance_id,
-        status="INACTIVE",
+        status=InstanceStatus.INACTIVE,
         created_at=instance.created_at,
         updated_at=datetime.now(),
     )
@@ -117,7 +122,7 @@ def test_update_instance(service, manage_table):
 def test_update_non_existent_instance(service, manage_table):
     instance = Instance(
         id="nonexistant",
-        status="ACTIVE",
+        status=InstanceStatus.ACTIVE,
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
@@ -126,11 +131,11 @@ def test_update_non_existent_instance(service, manage_table):
 
 
 def test_update_instance_with_updated_at_before_created_at(
-            service, manage_table
-        ):
+        service, manage_table
+):
     instance = Instance(
         id="instance_device_5",
-        status="ACTIVE",
+        status=InstanceStatus.ACTIVE,
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
@@ -139,7 +144,7 @@ def test_update_instance_with_updated_at_before_created_at(
     with pytest.raises(DomainLogicError):
         new_instance = Instance(
             id=instance_id,
-            status="ACTIVE",
+            status=InstanceStatus.ACTIVE,
             created_at=instance.created_at,
             updated_at=instance.created_at - timedelta(days=1),
         )
@@ -149,7 +154,7 @@ def test_update_instance_with_updated_at_before_created_at(
 def test_delete_instance(service, manage_table):
     instance = Instance(
         id="instance_device_6",
-        status="ACTIVE",
+        status=InstanceStatus.ACTIVE,
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
