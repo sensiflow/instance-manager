@@ -1,8 +1,8 @@
-from src.database.transaction import transaction
-from src.instance_manager.exception import InstanceNotFound
+from database.transaction import transaction
+from instance_manager.exception import InstanceNotFound
 from instance_manager.instance.instance import Instance
 from instance_manager.instance.instance_dao import InstanceDAOFactory
-from src.docker_manager.docker_api import DockerApi
+from docker_manager.docker_api import DockerApi
 from psycopg_pool import ConnectionPool
 
 
@@ -26,11 +26,11 @@ class InstanceService:
 
             return instance
 
-    def create_instance(self, instance: Instance) -> str:
+    def create_instance(self, instance: Instance, stream_url: str) -> str:
         with transaction(self.conn_manager) as cursor:
             instance_dao = self.dao_factory.create_dao(cursor)
             instance_id = instance_dao.create_instance(instance)
-            self.docker_api.create_container(instance.id)
+            self.docker_api.create_container(instance.id, "--weights", "yolov5s.pt", "--source", stream_url)
             return instance_id
 
     def update_instance(self, instance) -> bool:

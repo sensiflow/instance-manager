@@ -18,7 +18,7 @@ class EnvironmentType(Enum):
 
 def get_environment_type() -> EnvironmentType:
     """Returns the environment type of the application."""
-    env = os.getenv("ENVIRONMENT")
+    env = os.getenv("ENVIRONMENT").upper()
     if env in EnvironmentType._member_names_:
         print("Environment type: " + env)
         return EnvironmentType[env]

@@ -12,3 +12,4 @@ class Action(Enum):
 class Message:
     action: Action
     device_id: int
+    device_stream_url: str

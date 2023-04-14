@@ -3,8 +3,8 @@ import logging
 import json
 
 from instance_manager.instance.instance_service import InstanceService
-from src.instance_manager.message import Message, Action
-from src.instance_manager.message.message_handler import message_handler
+from instance_manager.message import Message, Action
+from instance_manager.message.message_handler import message_handler
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -18,14 +18,15 @@ async def process_message(
     message_body = message.body.decode()
     message_dict = json.loads(message_body)
 
-    messageDTO = Message(
+    message_dto = Message(
         action=Action[message_dict["action"]],
-        device_id=message_dict["device_id"]
+        device_id=message_dict["device_id"],
+        device_stream_url=message_dict.get("device_stream_url")
     )
 
-    logging.info(f"Received message: {messageDTO}")
+    logging.info(f"Received message: {message_dto}")
 
-    await message_handler(messageDTO, instance_service)
+    await message_handler(message_dto, instance_service)
 
     return
 

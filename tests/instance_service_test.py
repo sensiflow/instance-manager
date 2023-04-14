@@ -4,7 +4,7 @@ from psycopg_pool import ConnectionPool
 import psycopg
 
 from docker_manager.docker_api import DockerApi
-from src.config import (
+from config import (
     parse_config,
     get_environment_type,
     DATABASE_SECTION,
@@ -13,7 +13,7 @@ from src.config import (
 from instance_manager.instance.instance_service import InstanceService
 from instance_manager.instance.instance import Instance, InstanceStatus
 from instance_manager.instance.instance_dao import InstanceDAOFactory
-from src.instance_manager.exception import InstanceNotFound, DomainLogicError
+from instance_manager.exception import InstanceNotFound, DomainLogicError
 
 
 @pytest.fixture(scope="session")
@@ -51,7 +51,7 @@ def service(db_url):
     return InstanceService(
         ConnectionPool(db_url),
         InstanceDAOFactory(),
-       # DockerApi( ), TODO: Mock DockerApi
+        # DockerApiMock(), TODO: Mock DockerApi
     )
 
 

@@ -5,9 +5,9 @@ from datetime import datetime
 import logging
 
 
-async def start_instance(device_id: int, service: InstanceService):
+async def start_instance(message: Message, service: InstanceService):
     start_time = datetime.now()
-    instance_id = f"instance-{device_id}"
+    instance_id = f"instance-{message.device_id}"
     instance = Instance(
         id=instance_id,
         status=InstanceStatus.ACTIVE,
@@ -15,14 +15,14 @@ async def start_instance(device_id: int, service: InstanceService):
         updated_at=start_time
     )
     logging.info(f"Creating instance {instance}")
-    service.create_instance(instance)
+    service.create_instance(instance, message.device_stream_url)
 
 
-async def stop_instance(device_id: int, service: InstanceService):
+async def stop_instance(message: Message, service: InstanceService):
     pass
 
 
-async def pause_instance(device_id: int, service: InstanceService):
+async def pause_instance(message: Message, service: InstanceService):
     pass
 
 
@@ -34,4 +34,4 @@ dispatcher = {
 
 
 async def message_handler(message: Message, service: InstanceService):
-    await dispatcher[message.action](message.device_id, service)
+    await dispatcher[message.action](message, service)
