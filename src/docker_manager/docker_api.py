@@ -2,7 +2,6 @@ import asyncio
 
 import docker
 import logging
-from docker.models.containers import Container
 
 
 class DockerApi:
