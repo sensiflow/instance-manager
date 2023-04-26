@@ -1,6 +1,7 @@
 # Env and Configs
 configs/*.ini
 !configs/ci.ini
+!configs/dev.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -83,6 +84,9 @@ ipython_config.py
 
 # pyenv
 .python-version
+
+# PyCharm
+.idea/
 
 # pipenv
 #   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.

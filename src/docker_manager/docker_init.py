@@ -16,6 +16,9 @@ from src.config import (
 import logging
 
 
+logger = logging.getLogger(__name__)
+
+
 class ProcessingMode(Enum):
     CPU = auto()
     GPU = auto()
@@ -58,10 +61,7 @@ def build_settings(processing_mode: ProcessingMode):
 def docker_build_images(processing_mode: ProcessingMode):
     client = docker.from_env()
     build_args = build_settings(processing_mode)
-    if client.images.list(name=build_args["tag"]):
-        logging.log(logging.INFO, f"Image with tag {build_args['tag']} already exists, skipping build.")
-        return
-    logging.log(logging.INFO, f"Building image with tag {build_args['tag']},"
-                              f" please wait, this may take a while...")
-    client.images.build(path=build_args["path"], tag=build_args["tag"])
-    logging.log(logging.INFO, f"Image built with tag {build_args['tag']}")
+    logger.info(f"Building image with tag {build_args['tag']}," \
+                              " please wait, this may take a while...")
+    client.images.build(path=".", tag=build_args["tag"], dockerfile=build_args["path"] + "/Dockerfile")
+    logger.info(f"Image built with tag {build_args['tag']}")

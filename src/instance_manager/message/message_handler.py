@@ -15,7 +15,7 @@ async def start_instance(message: Message, service: InstanceService):
         updated_at=start_time
     )
     logging.info(f"Creating instance {instance}")
-    service.create_instance(instance, message.device_stream_url)
+    await service.create_instance(instance, message.device_stream_url)
 
 
 async def stop_instance(message: Message, service: InstanceService):
