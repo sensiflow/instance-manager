@@ -30,14 +30,18 @@ class InstanceService:
 
             return instance
 
-    async def create_instance(self, instance: Instance, stream_url: str) -> str:
+    async def create_instance(
+            self,
+            instance: Instance,
+            stream_url: str
+            ) -> str:
         with transaction(self.conn_manager) as cursor:
             instance_dao = self.dao_factory.create_dao(cursor)
             instance_id = instance_dao.create_instance(instance)
             logger.info(f"Created instance {instance_id}")
             await self.docker_api.run_container(instance.id,
-                                                   "--source",
-                                                   stream_url)
+                                                "--source",
+                                                stream_url)
             return instance_id
 
     async def update_instance(self, instance) -> bool:

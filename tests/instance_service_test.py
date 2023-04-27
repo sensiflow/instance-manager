@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from psycopg_pool import ConnectionPool
 import psycopg
 
-from docker_manager.docker_api import DockerApi
 from config import (
     parse_config,
     get_environment_type,

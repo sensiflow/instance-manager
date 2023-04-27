@@ -25,20 +25,29 @@ class ProcessingMode(Enum):
 
 
 def get_docker_config(cfg: ConfigParser):
-    processing_mode = cfg.get(HARDWARE_ACCELERATION_SECTION, HARDWARE_ACCELERATION_PROCESSING_MODE_KEY)
+    processing_mode = cfg.get(
+        HARDWARE_ACCELERATION_SECTION,
+        HARDWARE_ACCELERATION_PROCESSING_MODE_KEY
+        )
     mode = ProcessingMode[processing_mode]
     if mode == ProcessingMode.CPU:
         return {
             "processing_mode": mode,
         }
     elif mode == ProcessingMode.GPU:
-        has_version = cfg.has_option(HARDWARE_ACCELERATION_SECTION, HARDWARE_ACCELERATION_CUDA_VERSION_KEY)
+        has_version = cfg.has_option(
+            HARDWARE_ACCELERATION_SECTION,
+            HARDWARE_ACCELERATION_CUDA_VERSION_KEY
+            )
         if not has_version:
             IncompatibleConfigVariables(
                 HARDWARE_ACCELERATION_PROCESSING_MODE_KEY,
                 HARDWARE_ACCELERATION_CUDA_VERSION_KEY
             )
-        cuda_version = cfg.get(HARDWARE_ACCELERATION_SECTION, HARDWARE_ACCELERATION_CUDA_VERSION_KEY)
+        cuda_version = cfg.get(
+            HARDWARE_ACCELERATION_SECTION,
+            HARDWARE_ACCELERATION_CUDA_VERSION_KEY
+            )
         return {
             "processing_mode": mode,
             "cuda_version": cuda_version
@@ -61,7 +70,11 @@ def build_settings(processing_mode: ProcessingMode):
 def docker_build_images(processing_mode: ProcessingMode):
     client = docker.from_env()
     build_args = build_settings(processing_mode)
-    logger.info(f"Building image with tag {build_args['tag']}," \
-                              " please wait, this may take a while...")
-    client.images.build(path=".", tag=build_args["tag"], dockerfile=build_args["path"] + "/Dockerfile")
+    logger.info(f"Building image with tag {build_args['tag']},"
+                " please wait, this may take a while...")
+    client.images.build(
+        path=".",
+        tag=build_args["tag"],
+        dockerfile=build_args["path"] + "/Dockerfile"
+        )
     logger.info(f"Image built with tag {build_args['tag']}")

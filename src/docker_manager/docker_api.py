@@ -1,6 +1,9 @@
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import docker
 import logging
-import time
+
+from src.docker_manager.exceptions import GoalTimeout
 
 
 logger = logging.getLogger(__name__)
@@ -18,6 +21,7 @@ class DockerApi:
     def __init__(self, processor_image: str):
         self.client = docker.from_env()
         self.processor_image = processor_image
+        self.log_pool = ThreadPoolExecutor()
 
     async def run_container(self, container_name: str, *args: str):
         logger.info(f"Creating container {container_name}")
@@ -38,27 +42,31 @@ class DockerApi:
         except docker.errors.APIError as e:
             logger.error(f"Error starting container: {e}")
             raise e
-        
-    async def wait_goals(self, container, timeout_seconds=60):
+
+    async def wait_goals(self, container, timeout_seconds=10):
         """
-        Scans container logs for goal messages returns when the final goal is reached
+         Scans container logs for goal messages
+         returns when the final goal is reached
         """
-        logger.info("Waiting for container to reach goal")
-        start_time = time.time()
-        current_time = start_time
-        async for line in container.logs(stream=True):
-            if b"[GOAL]" in line:
-                logger.info("Container: GOAL REACHED")
-                break
-            current_time = time.time()
-            if current_time - start_time > timeout_seconds:
-                break
+        logger.info(f"Waiting for goals in container {container.name}")
+
+        def remove_container(container):
+            container.stop()
+            container.remove()
+
+        loop = asyncio.get_running_loop()
+        task = loop.run_in_executor(self.log_pool, goal_reached, container)
+        try:
+            await asyncio.wait_for(task, timeout_seconds)
+        except asyncio.TimeoutError:
+            logger.info(f"Timeout reached for container {container.name}")
+            remove_container(container)
+            raise GoalTimeout(container.name)
 
 
-
-
-        
-
-
-
-
+def goal_reached(container):
+    for line in container.logs(stream=True):
+        logger.info(line.decode("utf-8"))
+        if b"[GOAL]" in line:
+            logger.info("Final goal reached")
+            return True
