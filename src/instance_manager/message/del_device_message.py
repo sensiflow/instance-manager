@@ -1,11 +1,6 @@
-from enum import Enum, auto
 from dataclasses import dataclass
 
-
-class Action(Enum):
-    START = auto()
-    STOP = auto()
-    PAUSE = auto()
+from src.instance_manager.message.ctl_message import Action
 
 
 @dataclass(frozen=True)

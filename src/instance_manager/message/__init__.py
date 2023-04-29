@@ -1,1 +1,1 @@
-from src.instance_manager.message.message import Message, Action
+from src.instance_manager.message.ctl_message import Message, Action

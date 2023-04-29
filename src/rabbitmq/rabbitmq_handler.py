@@ -1,4 +1,3 @@
-from dataclasses import asdict, dataclass
 import aio_pika
 import logging
 import json
@@ -7,6 +6,7 @@ from aio_pika.pool import Pool
 from instance_manager.instance.instance_service import InstanceService
 from instance_manager.message import Message, Action
 from instance_manager.message.message_handler import message_handler
+from src.instance_manager.message.ack_message import AckMessage
 
 
 logger = logging.getLogger(__name__)
@@ -131,12 +131,3 @@ class RabbitMQClient:
             message = AckMessage(status=4000, message=f"{e}")
             await self.send_message(queue_name, channel, message)
         return
-
-
-@dataclass(frozen=True, repr=True)
-class AckMessage:
-    status: int
-    message: str
-
-    def to_dict(self):
-        return {k: str(v) for k, v in asdict(self).items()}
