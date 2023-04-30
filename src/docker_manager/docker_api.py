@@ -3,6 +3,8 @@ from concurrent.futures import ThreadPoolExecutor
 import docker
 import logging
 
+from docker.errors import APIError
+
 from src.docker_manager.exceptions import GoalTimeout
 
 
@@ -23,6 +25,32 @@ class DockerApi:
         self.processor_image = processor_image
         self.log_pool = ThreadPoolExecutor()
 
+    def stop_container(self, container_name: str):
+        logging.info(f"Stopping container {container_name}")
+        self.client.containers.get(container_name).stop(timeout=15)
+
+    async def remove_container(self, container_name: str, force=False, timeout=15):
+        """
+            container_name: the name of the container to stop
+            force: if true, the container is stopped and removed immediately
+            else the container is stopped fully and then removed
+            timeout: the time to wait for the container to stop,
+             when this timeout is reached a SIGKILL is sent to the container
+        """
+        container = self.client.containers.get(container_name)
+        logging.info(f"Stopping container {container_name}")
+
+        if container.status != "exited":
+            container.stop(timeout=timeout)
+
+        if force:
+            logging.info(f"Forcefully Removing container {container_name}")
+            container.remove(force=True)
+        else:
+            await container.wait()
+            logging.info(f"Removing container {container_name}")
+            container.remove()
+
     async def run_container(self, container_name: str, *args: str):
         logger.info(f"Creating container {container_name}")
         # run dockerfile with name
@@ -39,20 +67,16 @@ class DockerApi:
 
             await self.wait_goals(container)
 
-        except docker.errors.APIError as e:
+        except APIError as e:
             logger.error(f"Error starting container: {e}")
             raise e
 
-    async def wait_goals(self, container, timeout_seconds=10):
+    async def wait_goals(self, container, timeout_seconds=60):
         """
          Scans container logs for goal messages
          returns when the final goal is reached
         """
         logger.info(f"Waiting for goals in container {container.name}")
-
-        def remove_container(container):
-            container.stop()
-            container.remove()
 
         loop = asyncio.get_running_loop()
         task = loop.run_in_executor(self.log_pool, goal_reached, container)
@@ -60,7 +84,7 @@ class DockerApi:
             await asyncio.wait_for(task, timeout_seconds)
         except asyncio.TimeoutError:
             logger.info(f"Timeout reached for container {container.name}")
-            remove_container(container)
+            await self.remove_container(container.name, force=True)
             raise GoalTimeout(container.name)
 
 

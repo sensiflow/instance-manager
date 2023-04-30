@@ -6,6 +6,7 @@ class Action(Enum):
     START = auto()
     STOP = auto()
     PAUSE = auto()
+    REMOVE = auto()
 
 
 @dataclass(frozen=True)

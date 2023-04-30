@@ -2,20 +2,20 @@ import aio_pika
 import logging
 import json
 
+import docker.errors
 from aio_pika.pool import Pool
 from instance_manager.instance.instance_service import InstanceService
 from instance_manager.message import Message, Action
+from instance_manager.message.del_device_message import AckDeleteMessage
 from instance_manager.message.message_handler import message_handler
-from src.instance_manager.message.ack_message import AckMessage
-
+from src.instance_manager.message.ack_status_message import AckStatusMessage
 
 logger = logging.getLogger(__name__)
 
 
 async def start_rabbitmq_consumer_pool(
-            consumer_info, instance_service: InstanceService, event_loop
-        ) -> None:
-   
+        consumer_info, instance_service: InstanceService, event_loop
+) -> None:
     logger.info("Starting RabbitMQ consumer...")
     logger.debug(f"Connection info: {consumer_info}")
 
@@ -24,7 +24,8 @@ async def start_rabbitmq_consumer_pool(
     rbt_host = consumer_info["host"]
     rbt_port = consumer_info["port"]
     rbt_controller_queue_name = consumer_info["controller_queue"]
-    rbt_ack_queue_name = consumer_info["ack_queue"]
+    rbt_ack_status_queue_name = consumer_info["ack_status_queue"]
+    rbt_ack_delete_queue_name = consumer_info["ack_delete_queue"]
 
     rabbit_url = f"amqp://{rbt_user}:{rbt_pass}@{rbt_host}:{rbt_port}/"
     logger.debug(f"RabbitMQ Built URL: {rabbit_url}")
@@ -34,7 +35,8 @@ async def start_rabbitmq_consumer_pool(
 
     await rabbit_client.start_consumer(
         rbt_controller_queue_name,
-        rbt_ack_queue_name
+        rbt_ack_status_queue_name,
+        rbt_ack_delete_queue_name
     )
 
 
@@ -42,10 +44,10 @@ class RabbitMQManager:
     def __init__(self, rabbit_url, event_loop, instance_service):
         self.connection_pool = Pool(
             self.get_connection, max_size=2, loop=event_loop
-            )
+        )
         self.channel_pool = Pool(
             self.get_channel, max_size=10, loop=event_loop
-            )
+        )
         self.rabbit_url = rabbit_url
         self.event_loop = event_loop
         self.instance_service = instance_service
@@ -63,9 +65,9 @@ class RabbitMQClient:
         self.manager = manager
         self.instance_service = instance_service
 
-    async def consume(self, ctl_queue_name, ack_queue_name) -> None:
+    async def consume(self, ctl_queue_name, ack_status_queue_name, ack_delete_queue_name) -> None:
         async with self.manager.channel_pool.acquire() as channel:
-            await channel.set_qos(10)
+            await channel.set_qos(10)  # quality of service for the channel
 
             queue = await channel.declare_queue(
                 ctl_queue_name, durable=True, auto_delete=False,
@@ -75,17 +77,19 @@ class RabbitMQClient:
                 async for message in queue_iter:
                     async with message.process():
                         await self.process_message(
-                            ack_queue_name, channel, message
+                            ack_status_queue_name,
+                            ack_delete_queue_name,
+                            message
                         )
 
-    async def start_consumer(self, ctl_queue_name, ack_queue_name):
+    async def start_consumer(self, ctl_queue_name, ack_status_queue_name, ack_delete_queue_name):
         async with self.manager.connection_pool, self.manager.channel_pool:
             task = self.manager.event_loop.create_task(
-                self.consume(ctl_queue_name, ack_queue_name)
+                self.consume(ctl_queue_name, ack_status_queue_name, ack_delete_queue_name)
             )
             await task
 
-    async def send_message(self, queue_name, channel, message):
+    async def send_message(self, queue_name, message):
         logger.info(f"Sending message {message.to_dict()} to {queue_name}...")
         async with self.manager.channel_pool.acquire() as channel:
             exchange = await channel.declare_exchange(
@@ -106,7 +110,12 @@ class RabbitMQClient:
                 queue_name
             )
 
-    async def process_message(self, queue_name, channel, message):
+    async def process_message(
+            self,
+            status_queue_name,
+            delete_queue_name,
+            message
+    ):
         """
          Callback function for processing received messages from RabbitMQ.
         """
@@ -124,10 +133,31 @@ class RabbitMQClient:
 
         try:
             await message_handler(message_dto, self.instance_service)
-            message = AckMessage(status=2000, message="OK")
-            await self.send_message(queue_name, channel, message)
+
+            if message_dto.action == Action.REMOVE:
+                queue_name = delete_queue_name
+                message = AckDeleteMessage(
+                    device_id=message_dto.device_id,
+                )
+
+            else:
+                queue_name = status_queue_name
+                message = AckStatusMessage(
+                    code=2000,
+                    device_id=message_dto.device_id,
+                    state=message_dict["action"],
+                    message="OK"
+                )
+
+            await self.send_message(queue_name, message)
+
         except Exception as e:
             logger.error(f"Error while handling message: {e}")
-            message = AckMessage(status=4000, message=f"{e}")
-            await self.send_message(queue_name, channel, message)
+            message = AckStatusMessage(
+                code=4000,
+                device_id=message_dto.device_id,
+                state=message_dict["action"],
+                message=f"{e}"
+            )
+            await self.send_message(status_queue_name, message)
         return

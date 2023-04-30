@@ -1,10 +1,9 @@
-from dataclasses import dataclass
-
-from src.instance_manager.message.ctl_message import Action
+from dataclasses import dataclass, asdict
 
 
 @dataclass(frozen=True)
-class Message:
-    action: Action
+class AckDeleteMessage:
     device_id: int
-    device_stream_url: str
+
+    def to_dict(self):
+        return {k: str(v) for k, v in asdict(self).items()}

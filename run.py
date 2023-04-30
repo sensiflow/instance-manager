@@ -11,7 +11,8 @@ from config import (
     RABBITMQ_USER_KEY,
     RABBITMQ_PASSWORD_KEY,
     RABBITMQ_CONTROLLER_QUEUE_KEY,
-    RABBITMQ_ACK_QUEUE_KEY
+    RABBITMQ_ACK_STATUS_QUEUE_KEY,
+    RABBITMQ_ACK_DELETE_QUEUE_KEY
 )
 from src.rabbitmq.rabbitmq_handler import start_rabbitmq_consumer_pool
 from instance_manager.instance.instance_dao import InstanceDAOFactory
@@ -41,7 +42,8 @@ async def main():
             RABBITMQ_SECTION,
             RABBITMQ_CONTROLLER_QUEUE_KEY
             ),
-        "ack_queue": cfg.get(RABBITMQ_SECTION, RABBITMQ_ACK_QUEUE_KEY),
+        "ack_status_queue": cfg.get(RABBITMQ_SECTION, RABBITMQ_ACK_STATUS_QUEUE_KEY),
+        "ack_delete_queue": cfg.get(RABBITMQ_SECTION, RABBITMQ_ACK_DELETE_QUEUE_KEY),
     }
 
     docker_cfg = docker_init.get_docker_config(cfg)

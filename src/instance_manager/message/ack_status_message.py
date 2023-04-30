@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass
 
 
 @dataclass(frozen=True, repr=True)
-class AckMessage:
+class AckStatusMessage:
     device_id: int
     state: str
     code: int

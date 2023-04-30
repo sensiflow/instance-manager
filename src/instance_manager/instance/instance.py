@@ -20,6 +20,8 @@ class Instance:
             )
 
     id: str
+    device_id: int
     status: InstanceStatus
     created_at: datetime
     updated_at: datetime
+    scheduled_for_deletion: bool
