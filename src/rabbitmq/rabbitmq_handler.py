@@ -1,8 +1,9 @@
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import functools
 import aio_pika
 import logging
 import json
-
-import docker.errors
 from aio_pika.pool import Pool
 from instance_manager.instance.instance_service import InstanceService
 from instance_manager.message import Message, Action
@@ -64,6 +65,8 @@ class RabbitMQClient:
     def __init__(self, manager, instance_service):
         self.manager = manager
         self.instance_service = instance_service
+        self.consumer_pool = ThreadPoolExecutor(max_workers=5)
+        self.loop = asyncio.get_event_loop()
 
     async def consume(self, ctl_queue_name, ack_status_queue_name, ack_delete_queue_name) -> None:
         async with self.manager.channel_pool.acquire() as channel:
@@ -76,10 +79,14 @@ class RabbitMQClient:
             async with queue.iterator() as queue_iter:
                 async for message in queue_iter:
                     async with message.process():
-                        await self.process_message(
-                            ack_status_queue_name,
-                            ack_delete_queue_name,
-                            message
+                        self.loop.run_in_executor(
+                            self.consumer_pool,
+                            functools.partial(
+                                self.loop.create_task,
+                                self.process_message(
+                                    ack_status_queue_name, ack_delete_queue_name, message
+                                )
+                            )
                         )
 
     async def start_consumer(self, ctl_queue_name, ack_status_queue_name, ack_delete_queue_name):
@@ -88,7 +95,7 @@ class RabbitMQClient:
                 self.consume(ctl_queue_name, ack_status_queue_name, ack_delete_queue_name)
             )
             await task
-
+            
     async def send_message(self, queue_name, message):
         logger.info(f"Sending message {message.to_dict()} to {queue_name}...")
         async with self.manager.channel_pool.acquire() as channel:
@@ -120,8 +127,8 @@ class RabbitMQClient:
          Callback function for processing received messages from RabbitMQ.
         """
         logger.info("Starting to process message...")
-        message_body = message.body.decode()
-        message_dict = json.loads(message_body)
+        message_body = message.body.decode() 
+        message_dict = json.loads(message_body)  # TODO: fix when message is not json
 
         message_dto = Message(
             action=Action[message_dict["action"]],
@@ -134,6 +141,7 @@ class RabbitMQClient:
         try:
             await message_handler(message_dto, self.instance_service)
 
+            # TODO: send 4004 if error when the container to remove is not found
             if message_dto.action == Action.REMOVE:
                 queue_name = delete_queue_name
                 message = AckDeleteMessage(

@@ -19,8 +19,7 @@ class Instance:
                 "updated_at must be greater than created_at"
             )
 
-    id: str
-    device_id: int
+    id: int
     status: InstanceStatus
     created_at: datetime
     updated_at: datetime

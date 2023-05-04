@@ -8,17 +8,15 @@ import logging
 
 async def start_instance(message: Message, service: InstanceService):
     start_time = datetime.now()
-    instance_id = f"instance-{message.device_id}"
     instance = Instance(
-        id=instance_id,
-        device_id=message.device_id,
+        id=message.device_id,
         status=InstanceStatus.ACTIVE,
         created_at=start_time,
         updated_at=start_time,
         scheduled_for_deletion=False
     )
     logging.info(f"Creating instance {instance}")
-    await service.create_instance(instance, message.device_stream_url)
+    await service.start_instance(instance, message.device_stream_url)
 
 
 async def stop_instance(message: Message, service: InstanceService):
@@ -30,15 +28,14 @@ async def pause_instance(message: Message, service: InstanceService):
 
 
 async def remove_instance(message: Message, service: InstanceService):
-    instance_id = f"instance-{message.device_id}"
+    instance_id = message.device_id
     try:
         logging.info(f"Removing instance {instance_id}")
         await service.remove_instance(instance_id)
-    except APIError as e:
+    except Exception as e:
         logging.error(f"Error removing instance {instance_id}, Rescheduling...")
         await service.mark_instance_for_removal(
-            instance_id,
-            message.device_id,
+            instance_id
         )
 
 

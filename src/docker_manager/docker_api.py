@@ -1,10 +1,9 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+import functools
 import docker
 import logging
-
 from docker.errors import APIError
-
 from src.docker_manager.exceptions import GoalTimeout
 
 
@@ -23,13 +22,20 @@ class DockerApi:
     def __init__(self, processor_image: str):
         self.client = docker.from_env()
         self.processor_image = processor_image
-        self.log_pool = ThreadPoolExecutor()
+        self.log_pool = ThreadPoolExecutor(max_workers=5)
+
+    def is_healthy(self):
+        try:
+            self.client.ping()
+            return True
+        except Exception:
+            return False
 
     def stop_container(self, container_name: str):
-        logging.info(f"Stopping container {container_name}")
+        logger.info(f"Stopping container {container_name}")
         self.client.containers.get(container_name).stop(timeout=15)
 
-    async def remove_container(self, container_name: str, force=False, timeout=15):
+    async def remove_container(self, container_name: str, force=False, timeout=2):
         """
             container_name: the name of the container to stop
             force: if true, the container is stopped and removed immediately
@@ -38,17 +44,29 @@ class DockerApi:
              when this timeout is reached a SIGKILL is sent to the container
         """
         container = self.client.containers.get(container_name)
-        logging.info(f"Stopping container {container_name}")
+        
+        try:
+            loop = asyncio.get_running_loop()
+            loop.run_in_executor(
+                self.log_pool,
+                self.wait_container_removal,
+                container, container_name, force, timeout
+            )
+        except Exception as e:
+            logger.error(f"Error removing container {container_name}: {e}")
 
+    def wait_container_removal(self, container, container_name, force, timeout):
         if container.status != "exited":
+            logger.info(f"Stopping container {container_name}")
             container.stop(timeout=timeout)
 
         if force:
-            logging.info(f"Forcefully Removing container {container_name}")
+            logger.info(f"Forcefully Removing container {container_name}")
             container.remove(force=True)
         else:
-            await container.wait()
-            logging.info(f"Removing container {container_name}")
+            # container.wait is synchronous
+            container.wait()
+            logger.info(f"Removing container {container_name}")
             container.remove()
 
     async def run_container(self, container_name: str, *args: str):
@@ -86,6 +104,13 @@ class DockerApi:
             logger.info(f"Timeout reached for container {container.name}")
             await self.remove_container(container.name, force=True)
             raise GoalTimeout(container.name)
+        
+    def get_container(self, container_name):
+        return self.client.containers.get(container_name)
+
+    def get_containers(self):
+        containers = self.client.containers.list()
+        return [container.name for container in containers]
 
 
 def goal_reached(container):

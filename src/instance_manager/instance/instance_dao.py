@@ -18,7 +18,7 @@ class InstanceDAO:
 
     def get_instance(self, instance_id: int) -> Optional[Instance]:
         query = """
-        SELECT id, device_id, status, created_at, updated_at, scheduled_for_deletion
+        SELECT id, status, created_at, updated_at, scheduled_for_deletion
         FROM instance
         WHERE id = %s
         """
@@ -29,17 +29,16 @@ class InstanceDAO:
             return Instance(*row)
         return None
 
-    def create_instance(self, instance: Instance) -> int:
+    def start_instance(self, instance: Instance) -> int:
         query = """
         INSERT INTO instance
-        (id, device_id, status, created_at, updated_at, scheduled_for_deletion)
-        VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;
+        (id, status, created_at, updated_at, scheduled_for_deletion)
+        VALUES (%s, %s, %s, %s, %s) RETURNING id;
         """
         self.cursor.execute(
             query,
             (
                 instance.id,
-                instance.device_id,
                 instance.status.name,
                 instance.created_at,
                 instance.updated_at,
@@ -53,7 +52,7 @@ class InstanceDAO:
     def update_instance(self, instance: Instance) -> int:
         query = """
         UPDATE instance SET
-        status = %s,device_id = %s,
+        status = %s,
         created_at = %s, updated_at = %s, scheduled_for_deletion = %s
         WHERE id = %s
         """
@@ -61,7 +60,6 @@ class InstanceDAO:
             query,
             (
                 instance.status.name,
-                instance.device_id,
                 instance.created_at,
                 instance.updated_at,
                 instance.scheduled_for_deletion,
@@ -78,3 +76,12 @@ class InstanceDAO:
         self.cursor.execute(query, (instance_id,))
         return self.cursor.rowcount
 
+    def get_marked_instances(self):
+        query = """
+        SELECT id, status, created_at, updated_at, scheduled_for_deletion
+        FROM instance
+        WHERE scheduled_for_deletion = TRUE
+        """
+        self.cursor.execute(query)
+        rows = self.cursor.fetchall()
+        return [Instance(*row) for row in rows]
