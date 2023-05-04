@@ -6,9 +6,9 @@ class IncompatibleConfigVariables(Exception):
         super().__init__(self.message)
 
 
-class GoalTimeout(Exception):
+class ContainerGoalTimeout(Exception):
     def __init__(self, container_name):
         self.message = f"""
-            Container {container_name} did not reach goal in time
+        Container {container_name} did not reach goal in time
         """
         super().__init__(self.message)
