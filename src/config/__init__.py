@@ -1,4 +1,4 @@
-from config.config_env import EnvironmentType, get_environment_type, parse_config
+from config.config_env import get_environment_type, parse_config
 from config.constants import (
     DATABASE_SECTION,
     DATABASE_URL_KEY,
@@ -14,7 +14,3 @@ from config.constants import (
     HARDWARE_ACCELERATION_PROCESSING_MODE_KEY,
     HARDWARE_ACCELERATION_CUDA_VERSION_KEY
 )
-
-
-
-
