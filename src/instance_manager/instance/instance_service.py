@@ -43,7 +43,7 @@ class InstanceService:
             try:
                 instance_dao = self.dao_factory.create_dao(cursor)
                 stored_instance = await instance_dao.get_instance(instance.id)
-                
+
                 if stored_instance is None:
                     instance_id = await self.__create_instance(
                         instance_dao,
@@ -58,7 +58,7 @@ class InstanceService:
                 return instance_id
             except (DockerException, APIError) as e:
                 raise InternalError(e)
-               
+
     async def __create_instance(
             self,
             instance_dao,
@@ -71,7 +71,7 @@ class InstanceService:
         instance_id = await instance_dao.create_instance(instance)
 
         logger.info(f"Created instance {instance_id}")
-        
+
         await self.docker_api.run_container(
             self.build_instance_name(instance_id),
             "--source",
@@ -85,10 +85,9 @@ class InstanceService:
             stored_instance
     ):
         """
-            Starts an instance in the database and starts/resumes a docker container.
+        Starts an instance in the database and starts/resumes a docker container.
         """
-        if stored_instance.scheduled_for_deletion \
-                or stored_instance.status.value == InstanceStatus.ACTIVE.value:
+        if stored_instance.status.value == InstanceStatus.ACTIVE.value:
             raise InstanceAlreadyExists(stored_instance.id)
 
         instance = Instance(
@@ -112,7 +111,7 @@ class InstanceService:
                 self.build_instance_name(instance.id)
             )
         return stored_instance.id
-            
+
     async def remove_instance(self, instance_id: int):
         """
             Removes an instance from the database and docker.
@@ -131,7 +130,7 @@ class InstanceService:
                     logging.warning(
                         f"Instance {instance_id} not found, ignoring action")
                     raise InstanceNotFound(instance_id)
-            
+
                 await instance_dao.delete_instance(instance_id)
 
                 await self.docker_api.remove_container(
@@ -142,7 +141,7 @@ class InstanceService:
                 raise InstanceNotFound(instance_id)
             except (DockerException, APIError) as e:
                 raise InternalError(e)
-    
+
     async def stop_instance(self, instance_id: int):
         """
             Updates the instance status in the database
@@ -175,7 +174,7 @@ class InstanceService:
                 raise InstanceNotFound(instance_id)
             except (DockerException, APIError) as e:
                 raise InternalError(e)
-  
+
     async def pause_instance(self, instance_id: int):
         """
             Updates the instance status in the database

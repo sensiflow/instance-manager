@@ -80,13 +80,3 @@ class InstanceDAO:
         """
         await self.cursor.execute(query, (instance_id,))
         return self.cursor.rowcount
-
-    async def get_marked_instances(self):
-        query = """
-        SELECT id, status, created_at, updated_at
-        FROM instance
-        WHERE scheduled_for_deletion = TRUE
-        """
-        await self.cursor.execute(query)
-        rows = await self.cursor.fetchall()
-        return [Instance(*row) for row in rows]
