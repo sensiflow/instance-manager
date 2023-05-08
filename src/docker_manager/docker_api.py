@@ -1,6 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from enum import Enum, auto
+import functools
 import re
 import docker
 import logging
@@ -42,7 +42,7 @@ class DockerApi:
         except (DockerException, APIError) as e:
             logger.error("Docker server not responsive")
             raise e
-        
+
     async def get_container(self, container_name):
         """
         Gets the container with the given name
@@ -86,7 +86,7 @@ class DockerApi:
                 self.__get_containers,
                 True,
             )
-            container_name_regex = re.compile(r'^container-\d+$')
+            container_name_regex = re.compile(r'^instance-\d+$')
             device_containers = [
                 device_container for device_container in containers
                 if container_name_regex.match(device_container.name)
@@ -101,10 +101,10 @@ class DockerApi:
         return self.client.containers.list(all=all)
 
     async def stop_container(
-            self,
-            container_name: str,
-            timeout=15
-            ):
+        self,
+        container_name: str,
+        timeout=15
+    ):
         """
         Stops the container with the given name
         Parameters:
@@ -120,19 +120,21 @@ class DockerApi:
             container = await self.get_container(container_name)
             await self.loop.run_in_executor(
                 self.api_pool,
-                container.stop,
-                timeout
+                functools.partial(
+                    container.stop,
+                    timeout=timeout
+                )
             )
         except (DockerException, APIError) as e:
             logger.error(f"Error stopping container {container_name}")
             raise e
-        
+
     async def remove_container(
             self,
             container_name: str,
             force=False,
             timeout=15
-            ):
+    ):
         """
         Removes the container with the given name
         Parameters:
@@ -166,7 +168,7 @@ class DockerApi:
             container_name,
             force,
             timeout
-            ):
+    ):
         """
         Removes the container with the given name
         Parameters:
@@ -254,13 +256,13 @@ class DockerApi:
             self.api_pool,
             goal_reached,
             container
-            )
+        )
         try:
             await asyncio.wait_for(task, timeout_seconds)
         except asyncio.TimeoutError:
             await self.remove_container(container.name, force=True)
             raise ContainerGoalTimeout(container.name)
-        
+
     async def pause_container(self, container_name: str):
         """
         Pauses the container with the given name
@@ -302,7 +304,7 @@ class DockerApi:
         except (DockerException, APIError) as e:
             logger.error(f"Error unpausing container {container_name}")
             raise e
-        
+
     async def start_container(self, container_name: str):
         """
         Starts the container with the given name

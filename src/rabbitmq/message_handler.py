@@ -20,7 +20,7 @@ class MessageHandler:
             controller_queue_name,
             rabbitmq_client,
             instance_service
-            ):
+    ):
         self.delete_queue_name = delete_queue_name
         self.status_queue_name = status_queue_name
         self.controller_queue_name = controller_queue_name
@@ -34,7 +34,7 @@ class MessageHandler:
             response_status,
             device_id: int,
             action: Action
-            ):
+    ):
         """
             Sends a message to the RabbitMQ queue.
             Parameters:
@@ -76,7 +76,7 @@ class MessageHandler:
             input_message = self.__build_message_dto(received_message)
             device_id = input_message.device_id
             action = input_message.action
-            
+
             await message_dispatcher(input_message, self.instance_service)
 
             await self.send(
@@ -87,7 +87,7 @@ class MessageHandler:
             )
             await received_message.ack()
         except (KeyError, json.decoder.JSONDecodeError):
-            # Discard message has not the required format
+            # Discard message if it hasn't the required format
             logger.warning("Invalid message format. Discarding message...")
             await received_message.ack()
         except AppError as e:
@@ -98,8 +98,8 @@ class MessageHandler:
                 action=action
             )
             await received_message.ack()
-        except Exception as e:
-            logger.error(f"Unexpected error: {e}")
+        except Exception:
+            logger.exception("Unexpected error.")
             await received_message.reject(requeue=False)
 
     def __build_message_dto(self, input_message) -> InputMessage:

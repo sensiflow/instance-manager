@@ -86,10 +86,9 @@ class InstanceService:
             stored_instance
     ):
         """
-            Starts an instance in the database and starts/resumes a docker container.
+        Starts an instance in the database and starts/resumes a docker container.
         """
-        if stored_instance.scheduled_for_deletion \
-                or stored_instance.status.value == InstanceStatus.ACTIVE.value:
+        if stored_instance.status.value == InstanceStatus.ACTIVE.value:
             raise InstanceAlreadyExists(stored_instance.id)
 
         instance = Instance(
