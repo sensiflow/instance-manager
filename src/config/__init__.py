@@ -1,7 +1,10 @@
 from config.config_env import get_environment_type, parse_config
 from config.constants import (
     DATABASE_SECTION,
-    DATABASE_URL_KEY,
+    DATABASE_HOST_KEY,
+    DATABASE_PORT_KEY,
+    DATABASE_USER_KEY,
+    DATABASE_PASSWORD_KEY,
     RABBITMQ_SECTION,
     RABBITMQ_HOST_KEY,
     RABBITMQ_PORT_KEY,

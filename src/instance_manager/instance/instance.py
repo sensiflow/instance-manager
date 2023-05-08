@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from src.instance_manager.exception import DomainLogicError
+from src.instance_manager.instance.exceptions import DomainLogicError
 from datetime import datetime
 from enum import Enum, auto
 
@@ -23,4 +23,3 @@ class Instance:
     status: InstanceStatus
     created_at: datetime
     updated_at: datetime
-    scheduled_for_deletion: bool

@@ -1,67 +1,50 @@
+import sys
 from docker_manager import docker_init
-from docker_manager.docker_init import build_settings
 from config import (
     parse_config,
     get_environment_type,
-    DATABASE_SECTION,
-    DATABASE_URL_KEY,
-    RABBITMQ_SECTION,
-    RABBITMQ_HOST_KEY,
-    RABBITMQ_PORT_KEY,
-    RABBITMQ_USER_KEY,
-    RABBITMQ_PASSWORD_KEY,
-    RABBITMQ_CONTROLLER_QUEUE_KEY,
-    RABBITMQ_ACK_STATUS_QUEUE_KEY,
-    RABBITMQ_ACK_DELETE_QUEUE_KEY
 )
-from src.rabbitmq.rabbitmq_handler import start_rabbitmq_consumer_pool
+from src.config.app import get_app_config
+from src.rabbitmq.rabbit_init import consume_control_messages
 from instance_manager.instance.instance_dao import InstanceDAOFactory
 from instance_manager.instance.instance_service import InstanceService
 from docker_manager.docker_api import DockerApi
-from psycopg_pool import ConnectionPool
+from psycopg_pool import AsyncConnectionPool
 import asyncio
 import logging
+import docker
 
 
 logging.basicConfig(level=logging.INFO)
 
 
 async def main():
-
-    loop = asyncio.get_event_loop()
-
     cfg = parse_config(get_environment_type())
-    db_url = cfg.get(DATABASE_SECTION, DATABASE_URL_KEY)
+    app_cfg = get_app_config(cfg)
 
-    rabbit_cfg = {
-        "host": cfg.get(RABBITMQ_SECTION, RABBITMQ_HOST_KEY),
-        "port": cfg.get(RABBITMQ_SECTION, RABBITMQ_PORT_KEY),
-        "user": cfg.get(RABBITMQ_SECTION, RABBITMQ_USER_KEY),
-        "password": cfg.get(RABBITMQ_SECTION, RABBITMQ_PASSWORD_KEY),
-        "controller_queue": cfg.get(
-            RABBITMQ_SECTION,
-            RABBITMQ_CONTROLLER_QUEUE_KEY
-            ),
-        "ack_status_queue": cfg.get(RABBITMQ_SECTION, RABBITMQ_ACK_STATUS_QUEUE_KEY),
-        "ack_delete_queue": cfg.get(RABBITMQ_SECTION, RABBITMQ_ACK_DELETE_QUEUE_KEY),
-    }
+    database_cfg = app_cfg["database"]
+    database_url = (
+        f"postgres://{database_cfg['user']}:{database_cfg['password']}"
+        f"@{database_cfg['host']}:{database_cfg['port']}"
+    )
 
-    docker_cfg = docker_init.get_docker_config(cfg)
-    processing_mode = docker_cfg["processing_mode"]
-    docker_init.docker_build_images(processing_mode)
-    processor_image_tag = build_settings(processing_mode)['tag']
-
-    with ConnectionPool(db_url) as connection_manager:
+    hardware_acceleration_cfg = app_cfg["hardware_acceleration"]
+    docker_build_args = docker_init.build_settings(hardware_acceleration_cfg)
+    docker_init.build_images(docker_build_args)
+    docker.from_env().ping()
+    # TODO: Fazer constante para o min_size
+    async with AsyncConnectionPool(database_url, min_size=5) as connection_manager:
         instance_service = InstanceService(
             connection_manager,
             InstanceDAOFactory(),
-            DockerApi(processor_image_tag)
+            DockerApi(docker_build_args["tag"])
         )
-        await start_rabbitmq_consumer_pool(
-            rabbit_cfg,
-            instance_service,
-            event_loop=loop
+        await consume_control_messages(
+            app_cfg["rabbitmq"],
+            instance_service
         )
 
 if __name__ == "__main__":
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(main())

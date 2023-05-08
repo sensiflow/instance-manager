@@ -12,3 +12,11 @@ class ContainerGoalTimeout(Exception):
         Container {container_name} did not reach goal in time
         """
         super().__init__(self.message)
+
+
+class ContainerNotFound(Exception):
+    def __init__(self, container_name):
+        self.message = f"""
+            Instance was created but the container {container_name} does not exist.
+        """
+        super().__init__(self.message)

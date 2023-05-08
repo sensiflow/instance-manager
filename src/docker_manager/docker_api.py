@@ -2,8 +2,8 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import docker
 import logging
-from docker.errors import APIError
-from src.docker_manager.exceptions import ContainerGoalTimeout
+from docker.errors import APIError, DockerException, NotFound
+from src.docker_manager.exceptions import ContainerGoalTimeout, ContainerNotFound
 
 
 logger = logging.getLogger(__name__)
@@ -11,9 +11,7 @@ logger = logging.getLogger(__name__)
 
 class DockerApi:
     """
-    Manage docker engine
-    TODO: Run client.containers methods in an executor
-          to avoid blocking the event loop
+        Manage docker engine
     """
     restart_policy = {"Name": "on-failure", "MaximumRetryCount": 1}
     network_mode = "host"
@@ -24,42 +22,154 @@ class DockerApi:
         self.client = docker.from_env()
         self.processor_image = processor_image
         self.api_pool = ThreadPoolExecutor(max_workers=5)
+        self.loop = asyncio.get_event_loop()
 
-    def is_healthy(self):
-        try:
-            self.client.ping()
-            return True
-        except Exception:
-            return False
-
-    def stop_container(self, container_name: str):
-        logger.info(f"Stopping container {container_name}")
-        self.client.containers.get(container_name).stop(timeout=15)
-
-    async def remove_container(self, container_name: str, force=False, timeout=2):
+    async def check_health(self):
         """
+        Checks if docker engine is running
+        Throws:
+            DockerException: Error while fetching server API version
+            APIError: If the server returns an error.
+        """
+        try:
+            await self.loop.run_in_executor(
+                self.api_pool,
+                self.client.ping
+            )
+        except (DockerException, APIError) as e:
+            logger.error("Docker server not responsive")
+            raise e
+        
+    async def get_container(self, container_name):
+        """
+        Gets the container with the given name
+        Parameters:
+            container_name: the name of the container to get
+        Returns:
+            the container with the given name
+        Throws:
+            ContainerNotFound - if the container with the given name
+                                does not exist
+            DockerException: Error while fetching server API version
+            APIError: If the server returns an error.
+        """
+        try:
+            logger.info(f"Getting container {container_name}")
+            return await self.loop.run_in_executor(
+                self.api_pool,
+                self.client.containers.get,
+                container_name
+            )
+        except NotFound:
+            logger.error(f"Container {container_name} not found")
+            raise ContainerNotFound(container_name)
+        except (DockerException, APIError) as e:
+            logger.error(f"Error getting container {container_name}: {e}")
+            raise e
 
+    async def get_containers(self):
+        """
+        Gets all the containers in the docker engine
+        Returns:
+            a list with the names of all the containers in the docker
+            engine
+        """
+        try:
+            logger.info("Getting all containers")
+            # TODO: PARSE NAME TO MATCH DEFAULT CONTAINER NAME
+            future = self.loop.run_in_executor(
+                self.api_pool,
+                self.__get_containers,
+                True
+            )
+            containers = await future
+            return [container.name for container in containers]
+        except Exception as e:
+            logger.error(f"Error getting containers: {e}")
+            raise e
+
+    def __get_containers(self):
+        return self.client.containers.list(all=True)
+
+    async def stop_container(
+            self,
+            container_name: str,
+            timeout=15
+            ):
+        """
+        Stops the container with the given name
+        Parameters:
+            container_name: the name of the container to stop
+            timeout: the time to wait for the container to stop
+        Throws:
+            ContainerNotFound - if the container with the given name
+                                does not exist
+            DockerException: Error while fetching server API version
+            APIError: If the server returns an error.
+        """
+        try:
+            container = await self.get_container(container_name)
+            await self.loop.run_in_executor(
+                self.api_pool,
+                container.stop,
+                timeout
+            )
+        except (DockerException, APIError) as e:
+            logger.error(f"Error stopping container {container_name}")
+            raise e
+        
+    async def remove_container(
+            self,
+            container_name: str,
+            force=False,
+            timeout=15
+            ):
+        """
+        Removes the container with the given name
         Parameters:
             container_name: the name of the container to remove
-            Force: if true, the container is killed and removed immediately
-            otherwise the method waits for the container to stop 
-            and then removes it
+            force: if true, the container is killed and removed immediately
+                    otherwise the method waits for the container to stop
+                    and then removes it
             timeout: the time to wait for the container to stop,
-             when this timeout is reached a SIGKILL is sent to the container
+                        when this timeout is reached a SIGKILL is sent to the
+                        container
+        Throws:
+            ContainerNotFound - if the container with the given name
+                                does not exist
+            DockerException: Error while fetching server API version
+            APIError: If the server returns an error.
         """
-        container = self.client.containers.get(container_name)
-      
         try:
-            loop = asyncio.get_running_loop()
-            loop.run_in_executor(
+            container = await self.get_container(container_name)
+            await self.loop.run_in_executor(
                 self.api_pool,
-                self.wait_container_removal,
+                self.__wait_container_removal,
                 container, container_name, force, timeout
             )
-        except Exception as e:
-            logger.error(f"Error removing container {container_name}: {e}")
+        except (DockerException, APIError) as e:
+            logger.error(f"Error removing container {container_name}")
+            raise e
 
-    def wait_container_removal(self, container, container_name, force, timeout):
+    def __wait_container_removal(
+            self,
+            container,
+            container_name,
+            force,
+            timeout
+            ):
+        """
+        Removes the container with the given name
+        Parameters:
+            container: the container to remove
+            container_name: the name of the container to remove
+            force: if true, the container is killed and removed immediately
+                otherwise the method waits for the container to stop
+                and then removes it
+            timeout: the time to wait for the container to stop,
+                    when this timeout is reached a SIGKILL is sent to the
+                    container
+        """
         if container.status != "exited":
             logger.info(f"Stopping container {container_name}")
             container.stop(timeout=timeout)
@@ -68,33 +178,48 @@ class DockerApi:
             logger.info(f"Forcefully Removing container {container_name}")
             container.remove(force=True)
         else:
-            # container.wait is synchronous
             container.wait()
             logger.info(f"Removing container {container_name}")
             container.remove()
 
     async def run_container(self, container_name: str, *args: str):
+        """
+        Runs the container with the given name
+        Parameters:
+            container_name: the name of the container to run
+            args: the arguments to pass to the container.
+        Throws:
+            DockerException: Error while fetching server API version.
+            APIError: If the server returns an error.
+        """
         logger.info(f"Creating container {container_name}")
         # run dockerfile with name
-        # TODO: call in executor, run in blocking
         try:
-            container = self.client.containers.run(
-                name=container_name,
-                image=self.processor_image,
-                detach=True,
-                restart_policy=self.restart_policy,
-                network_mode=self.network_mode,
-                entrypoint=self.entrypoint,
-                command=args
+            container = await self.loop.run_in_executor(
+                self.api_pool,
+                self.__run_container,
+                container_name,
+                *args
             )
 
-            await self.wait_goals(container)
+            await self.__wait_goals(container)
 
-        except APIError as e:
-            logger.error(f"Error starting container: {e}")
+        except (DockerException, APIError) as e:
+            logger.error("Error starting container")
             raise e
 
-    async def wait_goals(self, container, timeout_seconds=60):
+    def __run_container(self, container_name: str, *args):
+        return self.client.containers.run(
+            name=container_name,
+            image=self.processor_image,
+            detach=True,
+            restart_policy=self.restart_policy,
+            network_mode=self.network_mode,
+            entrypoint=self.entrypoint,
+            command=args
+        )
+
+    async def __wait_goals(self, container, timeout_seconds=60):
         """
          Scans container logs for goal messages
          returns when the final goal is reached
@@ -116,17 +241,78 @@ class DockerApi:
                     logger.info("Final goal reached")
                     return True
 
-        loop = asyncio.get_running_loop()
-        task = loop.run_in_executor(self.api_pool, goal_reached, container)
+        task = self.loop.run_in_executor(
+            self.api_pool,
+            goal_reached,
+            container
+            )
         try:
             await asyncio.wait_for(task, timeout_seconds)
         except asyncio.TimeoutError:
             await self.remove_container(container.name, force=True)
             raise ContainerGoalTimeout(container.name)
+        
+    async def pause_container(self, container_name: str):
+        """
+        Pauses the container with the given name
+        Parameters:
+            container_name: the name of the container to pause
+        Throws:
+            ContainerNotFound - if the container with the given name
+                                does not exist
+            DockerException: Error while fetching server API version
+            APIError: If the server returns an error.
+        """
+        try:
+            container = await self.get_container(container_name)
+            self.loop.run_in_executor(
+                self.api_pool,
+                container.pause
+            )
+        except (DockerException, APIError) as e:
+            logger.error(f"Error pausing container {container_name}")
+            raise e
 
-    def get_container(self, container_name):
-        return self.client.containers.get(container_name)
+    async def unpause_container(self, container_name: str):
+        """
+        Unpauses the container with the given name
+        Parameters:
+            container_name: the name of the container to unpause
+        Throws:
+            ContainerNotFound - if the container with the given name
+                                does not exist
+            DockerException: Error while fetching server API version
+            APIError: If the server returns an error.
+        """
+        try:
+            container = await self.get_container(container_name)
+            self.loop.run_in_executor(
+                self.api_pool,
+                container.unpause
+            )
+        except (DockerException, APIError) as e:
+            logger.error(f"Error unpausing container {container_name}")
+            raise e
+        
+    async def start_container(self, container_name: str):
+        """
+        Starts the container with the given name
+        Parameters:
+            container_name: the name of the container to start
+        Throws:
+            ContainerNotFound - if the container with the given name
+                                does not exist
+            DockerException: Error while fetching server API version
+            APIError: If the server returns an error.
+        """
+        try:
+            container = await self.get_container(container_name)
+            self.loop.run_in_executor(
+                self.api_pool,
+                container.start
+            )
 
-    def get_containers(self):
-        containers = self.client.containers.list()
-        return [container.name for container in containers]
+            await self.__wait_goals(container)
+        except (DockerException, APIError) as e:
+            logger.error(f"Error starting container {container_name}")
+            raise e

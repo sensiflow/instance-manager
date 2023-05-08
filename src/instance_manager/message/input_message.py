@@ -10,8 +10,7 @@ class Action(Enum):
 
 
 @dataclass(frozen=True)
-class Message:
+class InputMessage:
     action: Action
     device_id: int
     device_stream_url: str
-    
