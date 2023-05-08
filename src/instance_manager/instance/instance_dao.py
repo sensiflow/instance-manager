@@ -81,12 +81,23 @@ class InstanceDAO:
         await self.cursor.execute(query, (instance_id,))
         return self.cursor.rowcount
 
-    async def get_marked_instances(self):
+    async def get_old_inactive_instances(self, min_age_minutes: int = 5) -> list[Instance]:
         query = """
         SELECT id, status, created_at, updated_at
         FROM instance
-        WHERE scheduled_for_deletion = TRUE
+        WHERE status != 'ACTIVE' AND updated_at < NOW() - INTERVAL '%s minute'
         """
-        await self.cursor.execute(query)
+        await self.cursor.execute(query, (min_age_minutes,))
         rows = await self.cursor.fetchall()
-        return [Instance(*row) for row in rows]
+        instances = []
+        for row in rows:
+            instance_id, status, created_at, updated_at = row
+            instances.append(
+                Instance(
+                    id=instance_id,
+                    status=InstanceStatus[status],
+                    created_at=created_at,
+                    updated_at=updated_at
+                )
+            )
+        return instances

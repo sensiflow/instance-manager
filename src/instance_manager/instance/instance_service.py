@@ -1,3 +1,4 @@
+import asyncio
 from src.instance_manager.transaction import transaction
 from instance_manager.instance.instance import Instance, InstanceStatus
 from instance_manager.instance.instance_dao import InstanceDAOFactory
@@ -209,6 +210,54 @@ class InstanceService:
             except (DockerException, APIError) as e:
                 raise InternalError(e)
 
+    async def manage_not_active_instances(self):
+        """
+            Manages inactive instances.
+            
+        """
+        async with transaction(self.async_conn_manager) as cursor:
+            try:
+                instance_dao = self.dao_factory.create_dao(cursor)
+                instances = await instance_dao.get_not_active_instances()
+
+                async def stop_container(instance):
+                    instance_name = self.build_instance_name(instance.id)
+                    self.docker_api.stop_container(instance_name)
+                    instance_dao.update_instance(
+                        Instance(
+                            id=instance.id,
+                            status=InstanceStatus.INACTIVE,
+                            created_at=instance.created_at,
+                            updated_at=datetime.now()
+                        )
+                    )
+
+                async def remove_container(instance):
+                    instance_name = self.build_instance_name(instance.id)
+                    self.docker_api.remove_container(instance_name, force=True)
+                    instance_dao.delete_instance(instance.id)
+
+                paused_instances = [
+                    stop_container(instance) for instance in instances
+                    if instance.status.value == InstanceStatus.PAUSED.value
+                ]
+
+                stopped_instances = [
+                    remove_container(instance) for instance in instances
+                    if instance.status.value == InstanceStatus.INACTIVE.value
+                ]
+
+                stop_task = asyncio.gather(*paused_instances)
+                remove_task = asyncio.gather(*stopped_instances)
+
+                await asyncio.gather(stop_task, remove_task)
+            except (DockerException, APIError) as e:
+                raise InternalError(e)
+
     @staticmethod
     def build_instance_name(instance_id: int) -> str:
         return f"instance-{instance_id}"
+    
+    @staticmethod
+    def get_instance_id_from_name(instance_name: str) -> int:
+        return int(instance_name.split("-")[1])

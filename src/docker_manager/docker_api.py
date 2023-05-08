@@ -1,8 +1,11 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from enum import Enum, auto
+import re
 import docker
 import logging
 from docker.errors import APIError, DockerException, NotFound
+from src.docker_manager.container_status import ContainerStatus
 from src.docker_manager.exceptions import ContainerGoalTimeout, ContainerNotFound
 
 
@@ -67,29 +70,35 @@ class DockerApi:
             logger.error(f"Error getting container {container_name}: {e}")
             raise e
 
-    async def get_containers(self):
+    async def get_containers(self, status: ContainerStatus = None):
         """
-        Gets all the containers in the docker engine
+        Gets all the containers in the docker engine that match container-{id}
+        Parameters:
+            status: the status of the containers to get
         Returns:
             a list with the names of all the containers in the docker
             engine
         """
         try:
             logger.info("Getting all containers")
-            # TODO: PARSE NAME TO MATCH DEFAULT CONTAINER NAME
-            future = self.loop.run_in_executor(
+            containers = await self.loop.run_in_executor(
                 self.api_pool,
                 self.__get_containers,
-                True
+                True,
             )
-            containers = await future
-            return [container.name for container in containers]
+            container_name_regex = re.compile(r'^container-\d+$')
+            device_containers = [
+                device_container for device_container in containers
+                if container_name_regex.match(device_container.name)
+            ]
+
+            return [container.name for container in device_containers]
         except Exception as e:
             logger.error(f"Error getting containers: {e}")
             raise e
 
-    def __get_containers(self):
-        return self.client.containers.list(all=True)
+    def __get_containers(self, all=False):
+        return self.client.containers.list(all=all)
 
     async def stop_container(
             self,
