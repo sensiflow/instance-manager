@@ -55,7 +55,7 @@ def service(db_url):
 
 
 def test_create_instance(service, manage_table):
-    created_at = datetime.now()
+    created_at = datetime.utcnow()
     instance = Instance(
         id="instance_device_2",
         status=InstanceStatus.ACTIVE,
@@ -79,8 +79,8 @@ def test_get_instance(service, manage_table):
     instance = Instance(
         id="instance_device_3",
         status=InstanceStatus.ACTIVE,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     instance_id = service.create_instance(instance)
     retrieved_instance = service.get_instance(instance_id)
@@ -103,15 +103,15 @@ def test_update_instance(service, manage_table):
     instance = Instance(
         id="instance_device_4",
         status=InstanceStatus.ACTIVE,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     instance_id = service.create_instance(instance)
     new_instance = Instance(
         id=instance_id,
         status=InstanceStatus.INACTIVE,
         created_at=instance.created_at,
-        updated_at=datetime.now(),
+        updated_at=datetime.utcnow(),
     )
     service.update_instance(new_instance)
     retrieved_instance = service.get_instance(instance_id)
@@ -122,8 +122,8 @@ def test_update_non_existent_instance(service, manage_table):
     instance = Instance(
         id="nonexistant",
         status=InstanceStatus.ACTIVE,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     with pytest.raises(InstanceNotFound):
         service.update_instance(instance)
@@ -135,8 +135,8 @@ def test_update_instance_with_updated_at_before_created_at(
     instance = Instance(
         id="instance_device_5",
         status=InstanceStatus.ACTIVE,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     instance_id = service.create_instance(instance)
 
@@ -154,8 +154,8 @@ def test_delete_instance(service, manage_table):
     instance = Instance(
         id="instance_device_6",
         status=InstanceStatus.ACTIVE,
-        created_at=datetime.now(),
-        updated_at=datetime.now(),
+        created_at=datetime.utcnow(),
+        updated_at=datetime.utcnow(),
     )
     instance_id = service.create_instance(instance)
     service.delete_instance(instance_id)

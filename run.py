@@ -1,3 +1,4 @@
+import os
 import sys
 from docker_manager import docker_init
 from config import (
