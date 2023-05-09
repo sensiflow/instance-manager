@@ -15,7 +15,7 @@ async def create_instance(message: InputMessage, service: InstanceService):
             InstanceAlreadyExists: If the instance was already created.
             InternalError
     """
-    start_time = datetime.now()
+    start_time = datetime.utcnow()
     instance = Instance(
         id=message.device_id,
         status=InstanceStatus.ACTIVE,

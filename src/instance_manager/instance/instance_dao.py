@@ -1,3 +1,4 @@
+import datetime
 from instance_manager.instance.instance import Instance
 from typing import Optional
 
@@ -83,11 +84,13 @@ class InstanceDAO:
 
     async def get_old_inactive_instances(self, min_age_minutes: int = 5) -> list[Instance]:
         query = """
-        SELECT id, status, created_at, updated_at
-        FROM instance
-        WHERE status != 'ACTIVE' AND updated_at < NOW() - INTERVAL '%s minute'
+            SELECT id, status, created_at, updated_at
+            FROM instance
+            WHERE status != 'ACTIVE' AND updated_at < NOW() - %s
+            LIMIT 100
         """
-        await self.cursor.execute(query, (min_age_minutes,))
+        interval = datetime.timedelta(minutes=min_age_minutes)
+        await self.cursor.execute(query, (interval,))
         rows = await self.cursor.fetchall()
         instances = []
         for row in rows:

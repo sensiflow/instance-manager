@@ -1,7 +1,6 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import functools
-import re
 import docker
 import logging
 from docker.errors import APIError, DockerException, NotFound
@@ -69,7 +68,6 @@ class DockerApi:
         except (DockerException, APIError) as e:
             logger.error(f"Error getting container {container_name}: {e}")
             raise e
-
 
     async def stop_container(
         self,
@@ -260,7 +258,7 @@ class DockerApi:
         """
         try:
             container = await self.get_container(container_name)
-            self.loop.run_in_executor(
+            await self.loop.run_in_executor(
                 self.api_pool,
                 container.pause
             )
@@ -281,7 +279,7 @@ class DockerApi:
         """
         try:
             container = await self.get_container(container_name)
-            self.loop.run_in_executor(
+            await self.loop.run_in_executor(
                 self.api_pool,
                 container.unpause
             )
@@ -302,7 +300,7 @@ class DockerApi:
         """
         try:
             container = await self.get_container(container_name)
-            self.loop.run_in_executor(
+            await self.loop.run_in_executor(
                 self.api_pool,
                 container.start
             )
