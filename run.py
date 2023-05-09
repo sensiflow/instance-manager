@@ -4,6 +4,7 @@ from config import (
     parse_config,
     get_environment_type,
 )
+from docker_manager.docker_init import ProcessingMode
 from src.config.app import get_app_config
 from src.rabbitmq.rabbit_init import consume_control_messages
 from instance_manager.instance.instance_dao import InstanceDAOFactory
@@ -13,7 +14,6 @@ from psycopg_pool import AsyncConnectionPool
 import asyncio
 import logging
 import docker
-
 
 logging.basicConfig(level=logging.INFO)
 
@@ -32,17 +32,19 @@ async def main():
     docker_build_args = docker_init.build_settings(hardware_acceleration_cfg)
     docker_init.build_images(docker_build_args)
     docker.from_env().ping()
+    docker_processing_mode = ProcessingMode[hardware_acceleration_cfg["processing_mode"]]
     # TODO: Fazer constante para o min_size
     async with AsyncConnectionPool(database_url, min_size=5) as connection_manager:
         instance_service = InstanceService(
             connection_manager,
             InstanceDAOFactory(),
-            DockerApi(docker_build_args["tag"])
+            DockerApi(docker_build_args["tag"], docker_processing_mode)
         )
         await consume_control_messages(
             app_cfg["rabbitmq"],
             instance_service
         )
+
 
 if __name__ == "__main__":
     if sys.platform == "win32":

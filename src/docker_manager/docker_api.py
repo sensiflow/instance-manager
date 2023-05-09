@@ -5,7 +5,6 @@ import re
 import docker
 import logging
 from docker.errors import APIError, DockerException, NotFound
-from src.docker_manager.container_status import ContainerStatus
 from src.docker_manager.exceptions import ContainerGoalTimeout, ContainerNotFound
 from docker_manager.docker_init import ProcessingMode
 
@@ -71,35 +70,6 @@ class DockerApi:
             logger.error(f"Error getting container {container_name}: {e}")
             raise e
 
-    async def get_containers(self, status: ContainerStatus = None):
-        """
-        Gets all the containers in the docker engine that match container-{id}
-        Parameters:
-            status: the status of the containers to get
-        Returns:
-            a list with the names of all the containers in the docker
-            engine
-        """
-        try:
-            logger.info("Getting all containers")
-            containers = await self.loop.run_in_executor(
-                self.api_pool,
-                self.__get_containers,
-                True,
-            )
-            container_name_regex = re.compile(r'^instance-\d+$')
-            device_containers = [
-                device_container for device_container in containers
-                if container_name_regex.match(device_container.name)
-            ]
-
-            return [container.name for container in device_containers]
-        except Exception as e:
-            logger.error(f"Error getting containers: {e}")
-            raise e
-
-    def __get_containers(self, all=False):
-        return self.client.containers.list(all=all)
 
     async def stop_container(
         self,
