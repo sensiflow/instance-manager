@@ -15,7 +15,6 @@ from src.config import (
 )
 import logging
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -28,7 +27,7 @@ def get_docker_config(cfg: ConfigParser):
     processing_mode = cfg.get(
         HARDWARE_ACCELERATION_SECTION,
         HARDWARE_ACCELERATION_PROCESSING_MODE_KEY
-        )
+    )
     mode = ProcessingMode[processing_mode]
     if mode == ProcessingMode.CPU:
         return {
@@ -38,7 +37,7 @@ def get_docker_config(cfg: ConfigParser):
         has_version = cfg.has_option(
             HARDWARE_ACCELERATION_SECTION,
             HARDWARE_ACCELERATION_CUDA_VERSION_KEY
-            )
+        )
         if not has_version:
             IncompatibleConfigVariables(
                 HARDWARE_ACCELERATION_PROCESSING_MODE_KEY,
@@ -47,7 +46,7 @@ def get_docker_config(cfg: ConfigParser):
         cuda_version = cfg.get(
             HARDWARE_ACCELERATION_SECTION,
             HARDWARE_ACCELERATION_CUDA_VERSION_KEY
-            )
+        )
         return {
             "processing_mode": mode,
             "cuda_version": cuda_version
@@ -67,14 +66,26 @@ def build_settings(processing_mode: ProcessingMode):
         }
 
 
-def docker_build_images(processing_mode: ProcessingMode):
+def build_args(processing_mode: ProcessingMode, cuda_version: str):
+    if processing_mode == ProcessingMode.CPU:
+        return {}
+    else:
+        return {
+            "CUDA_VERSION": cuda_version
+        }
+
+
+def docker_build_images(processing_mode: ProcessingMode, cuda_version: str):
     client = docker.from_env()
-    build_args = build_settings(processing_mode)
-    logger.info(f"Building image with tag {build_args['tag']},"
+    docker_build_settings = build_settings(processing_mode)
+    logger.info(f"Building image with tag {docker_build_settings['tag']},"
                 " please wait, this may take a while...")
+    docker_build_args = build_args(processing_mode, cuda_version)
+
     client.images.build(
         path=".",
-        tag=build_args["tag"],
-        dockerfile=build_args["path"] + "/Dockerfile"
-        )
-    logger.info(f"Image built with tag {build_args['tag']}")
+        tag=docker_build_settings["tag"],
+        dockerfile=docker_build_settings["path"] + "/Dockerfile",
+        buildargs=docker_build_args
+    )
+    logger.info(f"Image built with tag {docker_build_settings['tag']}")

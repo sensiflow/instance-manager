@@ -48,14 +48,15 @@ async def main():
 
     docker_cfg = docker_init.get_docker_config(cfg)
     processing_mode = docker_cfg["processing_mode"]
-    docker_init.docker_build_images(processing_mode)
+    cuda_version = docker_cfg.get("cuda_version", None)
+    docker_init.docker_build_images(processing_mode, cuda_version)
     processor_image_tag = build_settings(processing_mode)['tag']
 
     with ConnectionPool(db_url) as connection_manager:
         instance_service = InstanceService(
             connection_manager,
             InstanceDAOFactory(),
-            DockerApi(processor_image_tag)
+            DockerApi(processor_image_tag, processing_mode)
         )
         await start_rabbitmq_consumer_pool(
             rabbit_cfg,

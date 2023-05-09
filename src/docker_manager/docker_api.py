@@ -3,8 +3,9 @@ from concurrent.futures import ThreadPoolExecutor
 import docker
 import logging
 from docker.errors import APIError
-from src.docker_manager.exceptions import ContainerGoalTimeout
 
+from docker_manager.docker_init import ProcessingMode
+from src.docker_manager.exceptions import ContainerGoalTimeout
 
 logger = logging.getLogger(__name__)
 
@@ -19,11 +20,12 @@ class DockerApi:
     network_mode = "host"
     # TODO: mudar para uma constante o nome do ficheiro
     entrypoint = ["python", "transmit.py", "--weights", "yolov5s.pt"]
-
-    def __init__(self, processor_image: str):
+    # TODO: add --class 0 to entrypoint for only people detection
+    def __init__(self, processor_image: str, processing_mode: ProcessingMode):
         self.client = docker.from_env()
         self.processor_image = processor_image
         self.api_pool = ThreadPoolExecutor(max_workers=5)
+        self.processing_mode = processing_mode
 
     def is_healthy(self):
         try:
@@ -48,7 +50,7 @@ class DockerApi:
              when this timeout is reached a SIGKILL is sent to the container
         """
         container = self.client.containers.get(container_name)
-      
+
         try:
             loop = asyncio.get_running_loop()
             loop.run_in_executor(
@@ -73,10 +75,18 @@ class DockerApi:
             logger.info(f"Removing container {container_name}")
             container.remove()
 
-    async def run_container(self, container_name: str, *args: str):
+    async def run_container(self, container_name: str, *extra_args: str):
         logger.info(f"Creating container {container_name}")
-        # run dockerfile with name
+
         # TODO: call in executor, run in blocking
+
+        if self.processing_mode == ProcessingMode.CPU:
+            args = ["--device", "cpu"]
+        else:
+            args = ["--device", "0"]
+
+        docker_args = args + list(extra_args)
+
         try:
             container = self.client.containers.run(
                 name=container_name,
@@ -85,7 +95,7 @@ class DockerApi:
                 restart_policy=self.restart_policy,
                 network_mode=self.network_mode,
                 entrypoint=self.entrypoint,
-                command=args
+                command=docker_args
             )
 
             await self.wait_goals(container)
@@ -112,8 +122,14 @@ class DockerApi:
         def goal_reached(container):
             for line in container.logs(stream=True):
                 logger.info(line.decode("utf-8"))
-                if b"[GOAL]" in line:
-                    logger.info("Final goal reached")
+
+                if b"[ERROR" in line:
+                    decodedLine = line.decode("utf-8")
+                    logger.error(decodedLine.split("]")[1])
+                    raise Exception(decodedLine.split("]")[1])
+
+                if b"[SUCCESS 4]" in line:
+                    logger.info("Started Streaming")
                     return True
 
         loop = asyncio.get_running_loop()
