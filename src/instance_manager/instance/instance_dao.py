@@ -1,6 +1,7 @@
 from instance_manager.instance.instance import Instance
 from typing import Optional
-from dataclasses import asdict
+
+from src.instance_manager.instance.instance import InstanceStatus
 
 
 class InstanceDAOFactory:
@@ -16,72 +17,87 @@ class InstanceDAO:
     def __init__(self, cursor):
         self.cursor = cursor
 
-    def get_instance(self, instance_id: int) -> Optional[Instance]:
+    async def get_instance(self, instance_id: int) -> Optional[Instance]:
         query = """
-        SELECT id, status, created_at, updated_at, scheduled_for_deletion
+        SELECT id, status, created_at, updated_at
         FROM instance
         WHERE id = %s
         """
         # Note the trailing comma to make it a tuple
-        self.cursor.execute(query, (instance_id,))
-        row = self.cursor.fetchone()
+        await self.cursor.execute(query, (instance_id,))
+        row = await self.cursor.fetchone()
         if row is not None:
-            return Instance(*row)
+            instance_id, status, created_at, updated_at = row
+            return Instance(
+                id=instance_id,
+                status=InstanceStatus[status],
+                created_at=created_at,
+                updated_at=updated_at
+            )
         return None
 
-    def start_instance(self, instance: Instance) -> int:
+    async def create_instance(self, instance: Instance) -> int:
         query = """
         INSERT INTO instance
-        (id, status, created_at, updated_at, scheduled_for_deletion)
-        VALUES (%s, %s, %s, %s, %s) RETURNING id;
+        (id, status, created_at, updated_at)
+        VALUES (%s, %s, %s, %s) RETURNING id;
         """
-        self.cursor.execute(
+        await self.cursor.execute(
             query,
             (
                 instance.id,
                 instance.status.name,
                 instance.created_at,
                 instance.updated_at,
-                instance.scheduled_for_deletion,
             )
         )
-        result = self.cursor.fetchone()
+        result = await self.cursor.fetchone()
         generated_id = result[0]
         return generated_id
 
-    def update_instance(self, instance: Instance) -> int:
+    async def update_instance(self, instance: Instance) -> int:
         query = """
         UPDATE instance SET
         status = %s,
-        created_at = %s, updated_at = %s, scheduled_for_deletion = %s
+        created_at = %s, updated_at = %s
         WHERE id = %s
         """
-        self.cursor.execute(
+        await self.cursor.execute(
             query,
             (
                 instance.status.name,
                 instance.created_at,
                 instance.updated_at,
-                instance.scheduled_for_deletion,
                 instance.id,
             )
         )
         return self.cursor.rowcount
 
-    def delete_instance(self, instance_id: int) -> int:
+    async def delete_instance(self, instance_id: int) -> int:
         query = """
         DELETE FROM instance
         WHERE id = %s
         """
-        self.cursor.execute(query, (instance_id,))
+        await self.cursor.execute(query, (instance_id,))
         return self.cursor.rowcount
 
-    def get_marked_instances(self):
+    async def get_old_inactive_instances(self, min_age_minutes: int = 5) -> list[Instance]:
         query = """
-        SELECT id, status, created_at, updated_at, scheduled_for_deletion
+        SELECT id, status, created_at, updated_at
         FROM instance
-        WHERE scheduled_for_deletion = TRUE
+        WHERE status != 'ACTIVE' AND updated_at < NOW() - INTERVAL '%s minute'
         """
-        self.cursor.execute(query)
-        rows = self.cursor.fetchall()
-        return [Instance(*row) for row in rows]
+        await self.cursor.execute(query, (min_age_minutes,))
+        rows = await self.cursor.fetchall()
+        instances = []
+        for row in rows:
+            instance_id, status, created_at, updated_at = row
+            instances.append(
+                Instance(
+                    id=instance_id,
+                    status=InstanceStatus[status],
+                    created_at=created_at,
+                    updated_at=updated_at
+                )
+            )
+        return instances
