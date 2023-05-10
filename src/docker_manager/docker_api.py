@@ -25,6 +25,16 @@ class DockerApi:
         self.api_pool = ThreadPoolExecutor(max_workers=5)
         self.loop = asyncio.get_event_loop()
         self.processing_mode = processing_mode
+        self.device_requests = self._get_device_requests()
+        self.ipc_mode = "host"
+
+
+    def _get_device_requests(self):
+        if self.processing_mode == ProcessingMode.CPU:
+            return []
+        elif self.processing_mode == ProcessingMode.GPU:
+            return [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] # cont -1 is ALL GPUs
+
 
     async def check_health(self):
         """
@@ -203,6 +213,8 @@ class DockerApi:
             restart_policy=self.restart_policy,
             network_mode=self.network_mode,
             entrypoint=self.entrypoint,
+            device_requests = self.device_requests,
+            ipc_mode = self.ipc_mode,
             command=args
         )
 
