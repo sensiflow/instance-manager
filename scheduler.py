@@ -1,18 +1,18 @@
 import asyncio
 import logging
-import os
+import sys
+from psycopg_pool import AsyncConnectionPool
+
 from src.config.app import get_app_config
 from src.docker_manager.docker_api import DockerApi
 from src.instance_manager.instance.exceptions import InternalError
 from src.instance_manager.instance.instance_service import InstanceService
+from src.instance_manager.instance.instance_dao import InstanceDAOFactory
 from config import (
     parse_config,
     get_environment_type,
 )
-import sys
-from instance_manager.instance.instance_dao import InstanceDAOFactory
-from instance_manager.instance.instance_service import InstanceService
-from psycopg_pool import AsyncConnectionPool
+
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,8 @@ class Scheduler:
                 await self.docker_api.check_health()
                 await self.instance_service.manage_not_active_instances()
             except InternalError:
-                logger.exception("Internal error occurred while running scheduler")
+                logger.exception(
+                    "Internal error occurred while running scheduler")
             finally:
                 logger.info("Next iteration scheduled to run after 60 seconds")
                 await asyncio.sleep(self.scheduler_interval)
@@ -51,13 +52,16 @@ async def main():
     )
 
     async with AsyncConnectionPool(database_url) as connection_manager:
+
+        dockerApi = DockerApi(None, None)
+
         instance_service = InstanceService(
             connection_manager,
             InstanceDAOFactory(),
-            DockerApi(None)
+            dockerApi
         )
         scheduler = Scheduler(
-            instance_service, DockerApi(None)
+            instance_service, dockerApi
         )
         await scheduler.run()
 

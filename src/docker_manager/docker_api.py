@@ -4,7 +4,12 @@ import functools
 import docker
 import logging
 from docker.errors import APIError, DockerException, NotFound
-from src.docker_manager.exceptions import ContainerGoalTimeout, ContainerNotFound
+from docker import types
+from src.docker_manager.exceptions import (
+    ContainerExitedError,
+    ContainerGoalTimeout,
+    ContainerNotFound
+)
 from docker_manager.docker_init import ProcessingMode
 
 logger = logging.getLogger(__name__)
@@ -17,9 +22,12 @@ class DockerApi:
     restart_policy = {"Name": "on-failure", "MaximumRetryCount": 1}
     network_mode = "host"
     # TODO: mudar para uma constante o nome do ficheiro
-    entrypoint = ["python", "transmit.py", "--weights", "yolov5s.pt"]
+    entrypoint = ["poetry", "run", "python",
+                  "transmit.py", "--weights", "yolov5s.pt"]
     # TODO: add --class 0 to entrypoint for only people detection
-    def __init__(self, processor_image: str, processing_mode: ProcessingMode):
+
+    def __init__(self, processor_image: str,
+                 processing_mode: ProcessingMode):
         self.client = docker.from_env()
         self.processor_image = processor_image
         self.api_pool = ThreadPoolExecutor(max_workers=5)
@@ -27,14 +35,14 @@ class DockerApi:
         self.processing_mode = processing_mode
         self.device_requests = self._get_device_requests()
         self.ipc_mode = "host"
-
+        self.environment = {"ENVIRONMENT": "worker"}
 
     def _get_device_requests(self):
         if self.processing_mode == ProcessingMode.CPU:
             return []
         elif self.processing_mode == ProcessingMode.GPU:
-            return [docker.types.DeviceRequest(count=-1, capabilities=[["gpu"]])] # cont -1 is ALL GPUs
-
+            # cont -1 is ALL GPUs
+            return [types.DeviceRequest(count=-1, capabilities=[["gpu"]])]
 
     async def check_health(self):
         """
@@ -196,7 +204,7 @@ class DockerApi:
                 self.api_pool,
                 self.__run_container,
                 container_name,
-                *docker_args
+                *docker_args,
             )
 
             await self.__wait_goals(container)
@@ -206,6 +214,7 @@ class DockerApi:
             raise e
 
     def __run_container(self, container_name: str, *args):
+        # Add ENVIRONMENT= to args
         return self.client.containers.run(
             name=container_name,
             image=self.processor_image,
@@ -213,9 +222,10 @@ class DockerApi:
             restart_policy=self.restart_policy,
             network_mode=self.network_mode,
             entrypoint=self.entrypoint,
-            device_requests = self.device_requests,
-            ipc_mode = self.ipc_mode,
-            command=args
+            device_requests=self.device_requests,
+            ipc_mode=self.ipc_mode,
+            command=args,
+            environment=self.environment
         )
 
     async def __wait_goals(self, container, timeout_seconds=60):
@@ -234,6 +244,7 @@ class DockerApi:
         logger.info(f"Waiting for goals in container {container.name}")
 
         def goal_reached(container):
+            sucess = False
             for line in container.logs(stream=True):
                 logger.info(line.decode("utf-8"))
 
@@ -244,7 +255,10 @@ class DockerApi:
 
                 if b"[SUCCESS 4]" in line:
                     logger.info("Started Streaming")
+                    sucess = True
                     return True
+
+            return sucess
 
         task = self.loop.run_in_executor(
             self.api_pool,
@@ -252,8 +266,11 @@ class DockerApi:
             container
         )
         try:
-            await asyncio.wait_for(task, timeout_seconds)
-        except asyncio.TimeoutError:
+            success = await asyncio.wait_for(task, timeout_seconds)
+            if not success:
+                await self.remove_container(container.name, force=True)
+                raise ContainerExitedError(container.name)
+        except (asyncio.TimeoutError):
             await self.remove_container(container.name, force=True)
             raise ContainerGoalTimeout(container.name)
 

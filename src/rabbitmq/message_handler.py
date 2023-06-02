@@ -1,7 +1,10 @@
 from dataclasses import asdict
 import json
-from src.instance_manager.exceptions import AppError
-from src.instance_manager.instance.exceptions import InstanceAlreadyExists, InstanceNotFound
+from src.exceptions import AppError
+from src.instance_manager.instance.exceptions import (
+    InstanceAlreadyExists,
+    InstanceNotFound
+)
 from src.instance_manager.message import message_dispatcher
 from src.instance_manager.message.input_message import InputMessage
 from src.instance_manager.message.response_status import ResponseStatus

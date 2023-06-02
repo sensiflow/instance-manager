@@ -4,11 +4,15 @@ from aio_pika.pool import Pool
 
 
 class AsyncRabbitMQManager:
+    """
+    Helper class to manage rabbitmq connections and channels
+    """
+
     def __init__(
             self, rabbit_url,
             connection_pool_size=1,
             channel_pool_size=5
-            ):
+    ):
         self.event_loop = asyncio.get_event_loop()
         self.connection_pool = Pool(
             self.get_connection,

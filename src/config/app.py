@@ -31,7 +31,7 @@ def get_app_config(config_parser):
         "host": config_parser.get(DATABASE_SECTION, DATABASE_HOST_KEY),
         "port": config_parser.get(DATABASE_SECTION, DATABASE_PORT_KEY)
     }
-    
+
     # RabbitMQ configuration
     config["rabbitmq"] = {
         "host": config_parser.get(RABBITMQ_SECTION, RABBITMQ_HOST_KEY),
@@ -63,6 +63,20 @@ def get_app_config(config_parser):
             HARDWARE_ACCELERATION_CUDA_VERSION_KEY,
             fallback=None
         )
+    }
+
+    return config
+
+
+def get_worker_config(config_parser):
+    config = {}
+
+    # Database configuration
+    config["database"] = {
+        "user": config_parser.get(DATABASE_SECTION, DATABASE_USER_KEY),
+        "password": config_parser.get(DATABASE_SECTION, DATABASE_PASSWORD_KEY),
+        "host": config_parser.get(DATABASE_SECTION, DATABASE_HOST_KEY),
+        "port": config_parser.get(DATABASE_SECTION, DATABASE_PORT_KEY)
     }
 
     return config

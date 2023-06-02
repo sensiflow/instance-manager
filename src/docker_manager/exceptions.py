@@ -6,6 +6,18 @@ class IncompatibleConfigVariables(Exception):
         super().__init__(self.message)
 
 
+class ContainerExitedError(Exception):
+    """
+    Raised when a container exits unexpectedly without reaching its goal
+    """
+
+    def __init__(self, container_name):
+        self.message = f"""
+            Container {container_name} exited
+        """
+        super().__init__(self.message)
+
+
 class ContainerGoalTimeout(Exception):
     def __init__(self, container_name):
         self.message = f"""
@@ -17,6 +29,7 @@ class ContainerGoalTimeout(Exception):
 class ContainerNotFound(Exception):
     def __init__(self, container_name):
         self.message = f"""
-            Instance was created but the container {container_name} does not exist.
+            Instance was created but the container {container_name} \
+            does not exist.
         """
         super().__init__(self.message)

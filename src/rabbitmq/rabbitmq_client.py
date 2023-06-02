@@ -1,18 +1,17 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict
 import functools
 import json
 import logging
 import aio_pika
-from aio_pika.pool import Pool
+from src.rabbitmq.async_rabbitmq_manager import AsyncRabbitMQManager
 
 logger = logging.getLogger(__name__)
 
 
 class AsyncRabbitMQClient:
-    def __init__(self, mq_manager, pool_workers=5):
-        self.mq_manager = mq_manager
+    def __init__(self, async_manager: AsyncRabbitMQManager, pool_workers=5):
+        self.manager = async_manager
         self.consumer_pool = ThreadPoolExecutor(max_workers=pool_workers)
         self.loop = asyncio.get_event_loop()
 
@@ -30,7 +29,7 @@ class AsyncRabbitMQClient:
                 async_message_handler (function): The function to call when a
                     message is received.
         """
-        async with self.mq_manager.channel_pool.acquire() as channel:
+        async with self.manager.channel_pool.acquire() as channel:
             await channel.set_qos(10)  # quality of service for the channel
 
             queue = await channel.get_queue(ctl_queue_name, ensure=True)
@@ -57,8 +56,8 @@ class AsyncRabbitMQClient:
                 async_message_handler (function): The function to call when a
                     message is received.
         """
-        async with self.mq_manager.connection_pool, self.mq_manager.channel_pool:
-            task = self.mq_manager.event_loop.create_task(
+        async with self.manager.connection_pool, self.manager.channel_pool:
+            task = self.manager.event_loop.create_task(
                 self.__consume(ctl_queue_name, async_message_handler)
             )
             await task
@@ -71,7 +70,7 @@ class AsyncRabbitMQClient:
                 message (dict): The message to send as a dictionary.
         """
         logger.info(f"Sending message {message} to {routing_key}...")
-        async with self.mq_manager.channel_pool.acquire() as channel:
+        async with self.manager.channel_pool.acquire() as channel:
             exchange = await channel.declare_exchange(
                 exchange_name, durable=True
             )

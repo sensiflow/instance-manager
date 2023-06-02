@@ -1,4 +1,4 @@
-from src.instance_manager.exceptions import AppError
+from src.exceptions import AppError
 
 
 class InstanceNotFound(AppError):

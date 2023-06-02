@@ -56,7 +56,6 @@ def build_settings(hardware_acceleration_cfg: dict):
         }
 
 
-
 def build_images(build_args: dict):
     client = docker.from_env()
     logger.info(f"Building image with tag {build_args['tag']},"
@@ -65,6 +64,7 @@ def build_images(build_args: dict):
     client.images.build(
         path=".",
         tag=build_args["tag"],
+        rm=True,
         dockerfile=build_args["path"] + "/Dockerfile",
         buildargs={
             "CUDA_VERSION": build_args.get("cuda_version", None)

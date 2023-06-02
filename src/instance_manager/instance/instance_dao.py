@@ -82,7 +82,8 @@ class InstanceDAO:
         await self.cursor.execute(query, (instance_id,))
         return self.cursor.rowcount
 
-    async def get_old_inactive_instances(self, min_age_minutes: int = 5) -> list[Instance]:
+    async def get_old_inactive_instances(
+            self, min_age_minutes: int = 5) -> list[Instance]:
         query = """
             SELECT id, status, created_at, updated_at
             FROM instance

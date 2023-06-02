@@ -8,5 +8,8 @@ RUN git clone https://github.com/ultralytics/yolov5.git && \
 RUN sudo apt-get update \
     && sudo apt-get install -y ffmpeg
 
+RUN curl -sSL https://install.python-poetry.org | python3 -
 
-COPY ./docker/scripts/ ./
+COPY . .
+
+RUN $HOME/.local/bin/poetry shell && $HOME/.local/bin/poetry install

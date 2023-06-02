@@ -1,13 +1,20 @@
 import asyncio
-from src.instance_manager.transaction import transaction
+from src.database.transaction import transaction
 from instance_manager.instance.instance import Instance, InstanceStatus
 from instance_manager.instance.instance_dao import InstanceDAOFactory
 from docker_manager.docker_api import DockerApi
 from docker.errors import APIError, DockerException
 from psycopg_pool import AsyncConnectionPool
 import logging
-from src.instance_manager.instance.exceptions import InstanceAlreadyExists, InstanceNotFound, InternalError
-from src.docker_manager.exceptions import ContainerNotFound
+from src.instance_manager.instance.exceptions import (
+    InstanceAlreadyExists,
+    InstanceNotFound,
+    InternalError
+)
+from src.docker_manager.exceptions import (
+    ContainerExitedError,
+    ContainerNotFound
+)
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -59,6 +66,11 @@ class InstanceService:
                 return instance_id
             except (DockerException, APIError) as e:
                 raise InternalError(e)
+            # TODO: Make an error for each GOAL case and catch them
+            # here converting to the correct application error
+            # This is a temporary solution
+            except ContainerExitedError as e:
+                raise InstanceNotFound(e)
 
     async def __create_instance(
             self,
@@ -76,7 +88,9 @@ class InstanceService:
         await self.docker_api.run_container(
             self.build_instance_name(instance_id),
             "--source",
-            stream_url
+            stream_url,
+            "--device-id",
+            str(instance_id)
         )
         return instance_id
 
@@ -86,7 +100,8 @@ class InstanceService:
             stored_instance
     ):
         """
-        Starts an instance in the database and starts/resumes a docker container.
+        Starts an instance in the database and
+        starts/resumes a docker container.
         """
         if stored_instance.status.value == InstanceStatus.ACTIVE.value:
             raise InstanceAlreadyExists(stored_instance.id)
@@ -163,7 +178,8 @@ class InstanceService:
                         f"Instance {instance_id} not found, ignoring action")
                     raise InstanceNotFound(instance_id)
 
-                if stored_instance.status.value == InstanceStatus.INACTIVE.value:
+                if stored_instance.status.value \
+                        == InstanceStatus.INACTIVE.value:
                     return
 
                 instance = Instance(
@@ -231,7 +247,7 @@ class InstanceService:
                 instance_dao = self.dao_factory.create_dao(cursor)
                 instances = await instance_dao.get_old_inactive_instances()
                 logger.info(f"Found {len(instances)} inactive instances")
-                
+
                 async def stop_container(instance):
                     logger.info(
                         f"Stopping instance {instance.id} was paused for {datetime.utcnow() - instance.updated_at}"

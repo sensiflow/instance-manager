@@ -1,4 +1,3 @@
-import os
 import sys
 from docker_manager import docker_init
 from config import (
@@ -20,7 +19,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 async def main():
-    cfg = parse_config(get_environment_type())
+    envType = get_environment_type()
+    cfg = parse_config(envType)
     app_cfg = get_app_config(cfg)
 
     database_cfg = app_cfg["database"]
@@ -33,13 +33,17 @@ async def main():
     docker_build_args = docker_init.build_settings(hardware_acceleration_cfg)
     docker_init.build_images(docker_build_args)
     docker.from_env().ping()
-    docker_processing_mode = ProcessingMode[hardware_acceleration_cfg["processing_mode"]]
+    hardware_accel_mode = hardware_acceleration_cfg["processing_mode"]
+    docker_processing_mode = ProcessingMode[hardware_accel_mode]
     # TODO: Fazer constante para o min_size
-    async with AsyncConnectionPool(database_url, min_size=5) as connection_manager:
+    async with AsyncConnectionPool(database_url, min_size=5) as conn_manager:
         instance_service = InstanceService(
-            connection_manager,
+            conn_manager,
             InstanceDAOFactory(),
-            DockerApi(docker_build_args["tag"], docker_processing_mode)
+            DockerApi(
+                docker_build_args["tag"],
+                docker_processing_mode
+            )
         )
         await consume_control_messages(
             app_cfg["rabbitmq"],
