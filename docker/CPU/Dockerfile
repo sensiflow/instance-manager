@@ -5,11 +5,17 @@ RUN git clone https://github.com/ultralytics/yolov5.git && \
     cp -r yolov5/* . && \
     pip install -r requirements.txt
 
+# Add Poetry to the PATH
+ENV PATH="/home/user/.local/bin:$PATH"
+
 RUN sudo apt-get update \
     && sudo apt-get install -y ffmpeg
-
+# Install poetry and add it to the path
 RUN curl -sSL https://install.python-poetry.org | python3 -
+
+# Add Poetry to the PATH
+ENV PATH="${PATH}:/root/.local/share/pypoetry/venv/bin"
 
 COPY . .
 
-RUN $HOME/.local/bin/poetry shell && $HOME/.local/bin/poetry install
+RUN poetry install
