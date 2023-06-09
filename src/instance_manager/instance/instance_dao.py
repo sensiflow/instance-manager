@@ -1,5 +1,5 @@
 import datetime
-from instance_manager.instance.instance import Instance
+from src.instance_manager.instance.instance import Instance
 from typing import Optional
 
 from src.instance_manager.instance.instance import InstanceStatus

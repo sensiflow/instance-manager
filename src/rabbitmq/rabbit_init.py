@@ -1,5 +1,5 @@
 import logging
-from instance_manager.instance.instance_service import InstanceService
+from src.instance_manager.instance.instance_service import InstanceService
 from src.rabbitmq.async_rabbitmq_manager import AsyncRabbitMQManager
 from src.rabbitmq.message_handler import MessageHandler
 from src.rabbitmq.rabbitmq_client import AsyncRabbitMQClient

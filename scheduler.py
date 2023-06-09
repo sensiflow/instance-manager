@@ -8,7 +8,7 @@ from src.docker_manager.docker_api import DockerApi
 from src.instance_manager.instance.exceptions import InternalError
 from src.instance_manager.instance.instance_service import InstanceService
 from src.instance_manager.instance.instance_dao import InstanceDAOFactory
-from config import (
+from src.config import (
     parse_config,
     get_environment_type,
 )

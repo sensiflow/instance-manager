@@ -1,8 +1,8 @@
 import asyncio
 from src.database.transaction import transaction
-from instance_manager.instance.instance import Instance, InstanceStatus
-from instance_manager.instance.instance_dao import InstanceDAOFactory
-from docker_manager.docker_api import DockerApi
+from src.instance_manager.instance.instance import Instance, InstanceStatus
+from src.instance_manager.instance.instance_dao import InstanceDAOFactory
+from src.docker_manager.docker_api import DockerApi
 from docker.errors import APIError, DockerException
 from psycopg_pool import AsyncConnectionPool
 import logging

@@ -1,15 +1,15 @@
 import sys
-from docker_manager import docker_init
-from config import (
+from src.docker_manager import docker_init
+from src.config import (
     parse_config,
     get_environment_type,
 )
-from docker_manager.docker_init import ProcessingMode
+from src.docker_manager.docker_init import ProcessingMode
 from src.config.app import get_app_config
 from src.rabbitmq.rabbit_init import consume_control_messages
-from instance_manager.instance.instance_dao import InstanceDAOFactory
-from instance_manager.instance.instance_service import InstanceService
-from docker_manager.docker_api import DockerApi
+from src.instance_manager.instance.instance_dao import InstanceDAOFactory
+from src.instance_manager.instance.instance_service import InstanceService
+from src.docker_manager.docker_api import DockerApi
 from psycopg_pool import AsyncConnectionPool
 import asyncio
 import logging

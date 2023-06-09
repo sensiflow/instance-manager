@@ -1,7 +1,7 @@
 import docker
 from enum import Enum, auto
-from docker_manager.exceptions import IncompatibleConfigVariables
-from docker_manager.constants import (
+from src.docker_manager.exceptions import IncompatibleConfigVariables
+from src.docker_manager.constants import (
     DOCKERFILE_CPU,
     DOCKERFILE_GPU,
     TAG_CPU,

@@ -1,4 +1,4 @@
-from config import (
+from src.config import (
     DATABASE_SECTION,
     DATABASE_USER_KEY,
     DATABASE_PASSWORD_KEY,

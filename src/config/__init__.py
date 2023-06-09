@@ -1,5 +1,5 @@
-from config.config_env import get_environment_type, parse_config
-from config.constants import (
+from src.config.config_env import get_environment_type, parse_config
+from src.config.constants import (
     DATABASE_SECTION,
     DATABASE_HOST_KEY,
     DATABASE_PORT_KEY,
