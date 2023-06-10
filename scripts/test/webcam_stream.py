@@ -5,8 +5,15 @@ This can be as a live video stream.
 
 import cv2
 import subprocess as sp
+import argparse
 
-rtsp_url = "rtsp://localhost:8554/webcam"
+parser = argparse.ArgumentParser(description='Webcam streamer')
+parser.add_argument('--host', type=str, default='localhost', help='Host IP address',)
+parser.add_argument('--port', type=int, default=8554, help='Host port number', required=False)
+parser.add_argument('--path', type=str, default='webcam', help='Stream path', required=False)
+print("possible cmd line args: --host, --port, --path")
+args = parser.parse_args()
+rtsp_url = f"rtsp://{args.host}:{args.port}/{args.path}"
 
 cap = cv2.VideoCapture(0)
 

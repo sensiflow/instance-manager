@@ -1,12 +1,19 @@
 import cv2
 import subprocess as sp
+import argparse
 
 """
 This script is used to stream video from a file to an RTSP server in loop.
 Can be useful to test the instance manager workers.
 """
+parser = argparse.ArgumentParser(description='Webcam streamer')
+parser.add_argument('--host', type=str, default='localhost', help='Host IP address',)
+parser.add_argument('--port', type=int, default=8554, help='Host port number', required=False)
+parser.add_argument('--path', type=str, default='video', help='Stream path', required=False)
+print("possible cmd line args: --host, --port, --path")
+args = parser.parse_args()
+rtsp_url = f"rtsp://{args.host}:{args.port}/{args.path}"
 
-rtsp_url = "rtsp://localhost:8554/video"
 video_file = "path/to/video.mp4"
 
 cap = cv2.VideoCapture(video_file)

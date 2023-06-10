@@ -9,6 +9,17 @@ This is the image processor for the Sensi App.
 
 ## Getting Started
 
+#### Test scripts
+
+Some test scripts for streaming camera / video feed to the media server can be found at `./scripts/test/`.
+
+If the media server is using user and password authentication the url must follow the format:
+
+```
+rtsp://user:password@host:port/path
+```
+
+
 ### Prerequisites
 
 ### Installing
@@ -16,6 +27,7 @@ This is the image processor for the Sensi App.
 ### Running the tests
 
 ### Running the application
+
 
 
 
