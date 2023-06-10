@@ -1,4 +1,6 @@
 import asyncio
+
+from image_processor.processed_stream.processed_stream_dao import ProcessedStreamDAOFactory
 from src.database.transaction import transaction
 from src.instance_manager.instance.instance import Instance, InstanceStatus
 from src.instance_manager.instance.instance_dao import InstanceDAOFactory
@@ -24,11 +26,13 @@ class InstanceService:
     def __init__(
             self,
             async_conn_manager: AsyncConnectionPool,
-            dao_factory: InstanceDAOFactory,
+            instance_dao_factory: InstanceDAOFactory,
+            processed_stream_dao_factory : ProcessedStreamDAOFactory,
             docker_api: DockerApi
     ):
+        self.processed_stream_dao_factory = processed_stream_dao_factory
         self.async_conn_manager = async_conn_manager
-        self.dao_factory = dao_factory
+        self.dao_factory = instance_dao_factory
         self.docker_api = docker_api
 
     async def start_instance(
@@ -171,6 +175,7 @@ class InstanceService:
         async with transaction(self.async_conn_manager) as cursor:
             try:
                 instance_dao = self.dao_factory.create_dao(cursor)
+                processed_stream_dao = self.processed_stream_dao_factory.create_dao(cursor)
                 stored_instance = await instance_dao.get_instance(instance_id)
 
                 if stored_instance is None:
@@ -189,6 +194,8 @@ class InstanceService:
                     updated_at=datetime.utcnow()
                 )
                 await instance_dao.update_instance(instance)
+
+                await processed_stream_dao.delete_processed_stream(instance_id)
 
                 await self.docker_api.stop_container(
                     self.build_instance_name(instance_id)

@@ -14,7 +14,11 @@ from src.config import (
     RABBITMQ_ACK_DELETE_QUEUE_KEY,
     HARDWARE_ACCELERATION_SECTION,
     HARDWARE_ACCELERATION_PROCESSING_MODE_KEY,
-    HARDWARE_ACCELERATION_CUDA_VERSION_KEY
+    HARDWARE_ACCELERATION_CUDA_VERSION_KEY,
+    MEDIA_SERVER_SECTION,
+    MEDIA_SERVER_DESTINATION_HOST_KEY,
+    MEDIA_SERVER_WRITE_USER_KEY,
+    MEDIA_SERVER_WRITE_PASSWORD_KEY,
 )
 
 
@@ -77,6 +81,12 @@ def get_worker_config(config_parser):
         "password": config_parser.get(DATABASE_SECTION, DATABASE_PASSWORD_KEY),
         "host": config_parser.get(DATABASE_SECTION, DATABASE_HOST_KEY),
         "port": config_parser.get(DATABASE_SECTION, DATABASE_PORT_KEY)
+    }
+
+    config["MEDIA_SERVER"] = {
+        "destination_host" : config_parser.get(MEDIA_SERVER_SECTION,MEDIA_SERVER_DESTINATION_HOST_KEY),
+        "write_user" : config_parser.get(MEDIA_SERVER_SECTION,MEDIA_SERVER_WRITE_USER_KEY),
+        "write_password" : config_parser.get(MEDIA_SERVER_SECTION,MEDIA_SERVER_WRITE_PASSWORD_KEY)
     }
 
     return config

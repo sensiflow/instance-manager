@@ -3,6 +3,7 @@ import logging
 import sys
 from psycopg_pool import AsyncConnectionPool
 
+from image_processor.processed_stream.processed_stream_dao import ProcessedStreamDAOFactory
 from src.config.app import get_app_config
 from src.docker_manager.docker_api import DockerApi
 from src.instance_manager.instance.exceptions import InternalError
@@ -58,6 +59,7 @@ async def main():
         instance_service = InstanceService(
             connection_manager,
             InstanceDAOFactory(),
+            ProcessedStreamDAOFactory(),
             dockerApi
         )
         scheduler = Scheduler(

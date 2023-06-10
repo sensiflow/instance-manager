@@ -72,6 +72,7 @@ def run_inference_model(
         weights=ROOT / 'yolov5s.pt',  # model path or triton URL
         source=ROOT / 'data/images',  # file/dir/URL/glob/screen/0(webcam)
         data=ROOT / 'data/coco128.yaml',  # dataset.yaml path
+        destination_stream_url = None , # URL to send the processed stream to
         imgsz=(480, 640),  # inference size (height, width)
         conf_thres=0.25,  # confidence threshold
         iou_thres=0.45,  # NMS IOU threshold
@@ -96,7 +97,10 @@ def run_inference_model(
         on_stream_started=None,  # callback function to call when a stream is started
 ):
     source = str(source)
-    destination = source + "/detected"
+    if destination_stream_url is None:
+        logging_utils.logError(0, "Please provide a destination stream URL")
+        logging_utils.logShutdown()
+        return
     streamer = None
     callback_executor = ThreadPoolExecutor(max_workers=1)
 
@@ -138,7 +142,7 @@ def run_inference_model(
             dataset = LoadImages(source, img_size=imgsz,
                                  stride=stride, auto=pt, vid_stride=vid_stride)
 
-        callback_executor.submit(on_stream_started, destination)
+        callback_executor.submit(on_stream_started)
 
         logging_utils.logSuccess(2, "Got feed from the input")
     except Exception as e:
@@ -181,7 +185,7 @@ def run_inference_model(
             # Setup streamer
             if streamer is None:
                 streamer = StreamerRTSP(
-                    destination, im0.shape[1], im0.shape[0], FPS)
+                    destination_stream_url, im0.shape[1], im0.shape[0], FPS)
                 logging_utils.logSuccess(3, "Streamer object created")
                 streamer.start_stream()
                 logging_utils.logSuccess(4, "Streamer object started")
@@ -304,7 +308,17 @@ async def main(opt):
         f"@{database_cfg['host']}:{database_cfg['port']}"
     )
 
+    media_server_cfg = worker_cfg["MEDIA_SERVER"]
+
+    source_path = opt.source.split(":")[3].split("/")[1]
+    destination_stream_url = f"rtsp://{media_server_cfg['destination_host']}:8554/{source_path}/detected"
+
+    destination_authed_stream_url = destination_stream_url.replace("rtsp://", f"rtsp://{media_server_cfg['write_user']}:{media_server_cfg['write_password']}@")
+
+    logging.info("Destination URL: %s", destination_stream_url)
     logging.info("Connecting to %s", database_url)
+
+
 
     with ConnectionPool(database_url, min_size=5) as connection_manager:
 
@@ -323,13 +337,14 @@ async def main(opt):
         on_metric_detected = callbacks.get_on_metric_received_callback(
             metrics_service)
         on_detection_started = callbacks.get_on_stream_started_callback(
-            processed_service)
-
+            processed_service,destination_stream_url)
+        logging.info(on_detection_started)
         # Blocks the main thread, calling the callback functions in another
         run_inference_model(
             **vars(opt),
             on_metric_detected=on_metric_detected,
-            on_stream_started=on_detection_started
+            on_stream_started=on_detection_started,
+            destination_stream_url=destination_authed_stream_url
         )
 
     logging.info("Finished closing connection pool.")

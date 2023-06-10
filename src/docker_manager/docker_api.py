@@ -23,8 +23,8 @@ class DockerApi:
     network_mode = "host"
     # TODO: mudar para uma constante o nome do ficheiro
     entrypoint = ["poetry", "run", "python",
-                  "transmit.py", "--weights", "yolov5s.pt"]
-    # TODO: add --class 0 to entrypoint for only people detection
+                  "transmit.py", "--weights", "yolov5s.pt", "--class" ,"0"]
+    #TODO: to easily add support for other types of detection it is possible to change the class parameter
 
     def __init__(self, processor_image: str,
                  processing_mode: ProcessingMode):
@@ -38,9 +38,9 @@ class DockerApi:
         self.environment = {"ENVIRONMENT": "worker"}
 
     def _get_device_requests(self):
-        if self.processing_mode == ProcessingMode.CPU:
+        if ProcessingMode[self.processing_mode.name] == ProcessingMode.CPU:
             return []
-        elif self.processing_mode == ProcessingMode.GPU:
+        elif ProcessingMode[self.processing_mode.name] == ProcessingMode.GPU:
             # cont -1 is ALL GPUs
             return [types.DeviceRequest(count=-1, capabilities=[["gpu"]])]
 
@@ -120,7 +120,7 @@ class DockerApi:
             self,
             container_name: str,
             force=False,
-            timeout=15
+            timeout=7
     ):
         """
         Removes the container with the given name

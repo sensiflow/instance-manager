@@ -9,6 +9,7 @@ from config import (
     DATABASE_SECTION,
     DATABASE_URL_KEY,
 )
+from image_processor.processed_stream.processed_stream_dao import ProcessedStreamDAOFactory
 from instance_manager.instance.instance_service import InstanceService
 from instance_manager.instance.instance import Instance, InstanceStatus
 from instance_manager.instance.instance_dao import InstanceDAOFactory
@@ -50,6 +51,7 @@ def service(db_url):
     return InstanceService(
         ConnectionPool(db_url),
         InstanceDAOFactory(),
+        ProcessedStreamDAOFactory(),
         # DockerApiMock(), TODO: Mock DockerApi
     )
 

@@ -1,4 +1,6 @@
 import sys
+
+from image_processor.processed_stream.processed_stream_dao import ProcessedStreamDAOFactory
 from src.docker_manager import docker_init
 from src.config import (
     parse_config,
@@ -40,6 +42,7 @@ async def main():
         instance_service = InstanceService(
             conn_manager,
             InstanceDAOFactory(),
+            ProcessedStreamDAOFactory(),
             DockerApi(
                 docker_build_args["tag"],
                 docker_processing_mode

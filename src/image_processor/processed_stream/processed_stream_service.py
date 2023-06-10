@@ -28,24 +28,16 @@ class ProcessedStreamService:
             self.logger.info("Inside transaction")
 
             processed_dao = self.dao_factory.create_dao(cursor)
-            already_exists = processed_dao.exists(self.device_id)
 
             processed_stream = ProcessedStream(
                 device_id=self.device_id,
                 stream_url=stream_url,
             )
 
-            if already_exists:
-                self.logger.info(
-                    "Updating processed stream: %s | device: %s",
-                    stream_url,
-                    self.device_id
-                )
-                processed_dao.update_processed_stream(processed_stream)
-            else:
-                self.logger.info(
-                    "Creating processed stream: %s | device: %s",
-                    stream_url,
-                    self.device_id
-                )
-                processed_dao.create_processed_stream(processed_stream)
+            self.logger.info(
+                "Updating processed stream: %s | device: %s",
+                stream_url,
+                self.device_id
+            )
+            processed_dao.update_processed_stream(processed_stream)
+

@@ -20,8 +20,8 @@ def get_on_metric_received_callback(metrics_service: DetectionMetricsService):
     return on_metric_received
 
 
-def get_on_stream_started_callback(processed_stream_service):
-    def on_stream_started(stream_url):
+def get_on_stream_started_callback(processed_stream_service, stream_url):
+    def on_stream_started():
         try:
             logger.info("Stream started: %s", stream_url)
             processed_stream_service.save_processed_stream(stream_url)
