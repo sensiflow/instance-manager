@@ -16,9 +16,12 @@ from psycopg_pool import AsyncConnectionPool
 import asyncio
 import logging
 import docker
+import requests
+import os
 
 logging.basicConfig(level=logging.INFO)
 
+yolov5ModelURL = "https://github.com/ultralytics/yolov5/releases/download/v7.0/yolov5s.pt"
 
 async def main():
     envType = get_environment_type()
@@ -38,6 +41,16 @@ async def main():
     hardware_accel_mode = hardware_acceleration_cfg["processing_mode"]
     docker_processing_mode = ProcessingMode[hardware_accel_mode]
     # TODO: Fazer constante para o min_size
+
+    # if no file at /docker/models/yolov5s.pt download it
+    logging.info("Checking if yolov5s.pt exists")
+    if not os.path.isfile('./docker/models/yolov5s.pt'):
+        logging.info("Downloading yolov5s.pt")
+        r = requests.get(yolov5ModelURL, allow_redirects=True)
+        open('./docker/models/yolov5s.pt', 'wb').write(r.content)
+        logging.info("Downloaded yolov5s.pt")
+
+
     async with AsyncConnectionPool(database_url, min_size=5) as conn_manager:
         instance_service = InstanceService(
             conn_manager,

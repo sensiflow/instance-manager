@@ -1,3 +1,4 @@
+from config.constants import MEDIA_SERVER_RTSPS_PORT_KEY, MEDIA_SERVER_SECURE_KEY, MEDIA_SERVER_RTSP_PORT_KEY
 from src.config import (
     DATABASE_SECTION,
     DATABASE_USER_KEY,
@@ -86,7 +87,10 @@ def get_worker_config(config_parser):
     config["MEDIA_SERVER"] = {
         "destination_host" : config_parser.get(MEDIA_SERVER_SECTION,MEDIA_SERVER_DESTINATION_HOST_KEY),
         "write_user" : config_parser.get(MEDIA_SERVER_SECTION,MEDIA_SERVER_WRITE_USER_KEY),
-        "write_password" : config_parser.get(MEDIA_SERVER_SECTION,MEDIA_SERVER_WRITE_PASSWORD_KEY)
+        "write_password" : config_parser.get(MEDIA_SERVER_SECTION,MEDIA_SERVER_WRITE_PASSWORD_KEY),
+        "secure" : config_parser.get(MEDIA_SERVER_SECTION,MEDIA_SERVER_SECURE_KEY,fallback=False),
+        "rtsps_port" : config_parser.get(MEDIA_SERVER_SECTION,MEDIA_SERVER_RTSPS_PORT_KEY,fallback=8322),
+        "rtsp_port" : config_parser.get(MEDIA_SERVER_SECTION,MEDIA_SERVER_RTSP_PORT_KEY, fallback=8554),
     }
 
     return config

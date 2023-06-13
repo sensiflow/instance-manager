@@ -18,4 +18,6 @@ ENV PATH="${PATH}:/root/.local/share/pypoetry/venv/bin"
 
 COPY . .
 
+run cp ./docker/models/yolov5s.pt .
+
 RUN poetry install

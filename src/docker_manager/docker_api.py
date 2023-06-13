@@ -90,7 +90,7 @@ class DockerApi:
     async def stop_container(
         self,
         container_name: str,
-        timeout=15
+        timeout=5
     ):
         """
         Stops the container with the given name
@@ -120,7 +120,7 @@ class DockerApi:
             self,
             container_name: str,
             force=False,
-            timeout=7
+            timeout=5
     ):
         """
         Removes the container with the given name
@@ -244,21 +244,20 @@ class DockerApi:
         logger.info(f"Waiting for goals in container {container.name}")
 
         def goal_reached(container):
-            sucess = False
             for line in container.logs(stream=True):
-                logger.info(line.decode("utf-8"))
+                decodedLine = line.decode("utf-8")
+                logger.info(decodedLine)
 
                 if b"[ERROR" in line:
-                    decodedLine = line.decode("utf-8")
-                    logger.error(decodedLine.split("]")[1])
-                    raise Exception(decodedLine.split("]")[1])
+                    error = decodedLine.split("]")[1]
+                    logger.error(error)
+                    return (False,error)
 
                 if b"[SUCCESS 4]" in line:
                     logger.info("Started Streaming")
-                    sucess = True
-                    return True
+                    return (True, "")
 
-            return sucess
+            return (False, "Did not reach final goal")
 
         task = self.loop.run_in_executor(
             self.api_pool,
@@ -266,10 +265,11 @@ class DockerApi:
             container
         )
         try:
-            success = await asyncio.wait_for(task, timeout_seconds)
+            (success,error) = await asyncio.wait_for(task, timeout_seconds)
             if not success:
+                logger.error(f"Container {container.name} failed to start")
                 await self.remove_container(container.name, force=True)
-                raise ContainerExitedError(container.name)
+                raise ContainerExitedError(container.name,error)
         except (asyncio.TimeoutError):
             await self.remove_container(container.name, force=True)
             raise ContainerGoalTimeout(container.name)

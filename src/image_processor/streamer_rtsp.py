@@ -35,7 +35,6 @@ class StreamerRTSP(StreamerInterface):
             '-c', 'libx264',  # https://trac.ffmpeg.org/wiki/Encode/H.264
             '-preset', 'ultrafast',
             '-f', 'rtsp',
-            # TODO: test with udp and see if its better
             '-rtsp_transport', 'tcp',
             self.destination_uri
         ]

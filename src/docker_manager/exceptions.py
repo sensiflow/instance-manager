@@ -11,9 +11,9 @@ class ContainerExitedError(Exception):
     Raised when a container exits unexpectedly without reaching its goal
     """
 
-    def __init__(self, container_name):
+    def __init__(self, container_name, error_message):
         self.message = f"""
-            Container {container_name} exited
+            Container {container_name} exited, error: {error_message}
         """
         super().__init__(self.message)
 

@@ -2,14 +2,14 @@ import logging
 from src.image_processor.processed_stream.processed_stream import (
     ProcessedStream)
 from src.database.transaction import transaction_sync
-from psycopg_pool import AsyncConnectionPool
+from psycopg_pool import AsyncConnectionPool, ConnectionPool
 from src.image_processor.processed_stream.processed_stream_dao import (
     ProcessedStreamDAOFactory)
 
 
 class ProcessedStreamService:
 
-    def __init__(self, conn_manager: AsyncConnectionPool,
+    def __init__(self, conn_manager: ConnectionPool,
                  dao_factory: ProcessedStreamDAOFactory,
                  device_id: int) -> None:
         self.conn_manager = conn_manager
