@@ -37,6 +37,17 @@ class InstanceDAO:
             )
         return None
 
+    async def get_all_instances(self) -> Optional[Instance]:
+        query = """
+        SELECT id, status, created_at, updated_at
+        FROM instance
+        """
+        await self.cursor.execute(query)
+        instances = self.cursor.fetchall()
+        if instances is not None:
+            return instances
+        return None
+
     async def create_instance(self, instance: Instance) -> int:
         query = """
         INSERT INTO instance

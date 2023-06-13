@@ -9,11 +9,15 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Webcam streamer')
 parser.add_argument('--host', type=str, default='localhost', help='Host IP address',)
-parser.add_argument('--port', type=int, default=8554, help='Host port number', required=False)
+parser.add_argument('--safe', type=bool, default=False, help='Host port number', required=False)
 parser.add_argument('--path', type=str, default='webcam', help='Stream path', required=False)
-print("possible cmd line args: --host, --port, --path")
+print("possible cmd line args: --host, --safe, --path")
 args = parser.parse_args()
-rtsp_url = f"rtsp://{args.host}:{args.port}/{args.path}"
+
+if(args.safe == False):
+    stream_url = f"rtsp://{args.host}:8554/{args.path}"
+else:
+    stream_url = f"rtsps://{args.host}:8322/{args.path}"
 
 cap = cv2.VideoCapture(0)
 
@@ -38,7 +42,7 @@ command = ['ffmpeg',
            '-f', 'rtsp',
            '-rtsp_transport', 'tcp',
            '-muxdelay', '0.1',
-           rtsp_url]
+           stream_url]
 
 try:
     p = sp.Popen(command, stdin=sp.PIPE)

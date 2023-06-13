@@ -12,7 +12,7 @@ parser.add_argument('--port', type=int, default=8554, help='Host port number', r
 parser.add_argument('--path', type=str, default='video', help='Stream path', required=False)
 print("possible cmd line args: --host, --port, --path")
 args = parser.parse_args()
-rtsp_url = f"rtsp://{args.host}:{args.port}/{args.path}"
+stream_url = f"rtsp://{args.host}:{args.port}/{args.path}"
 
 video_file = "path/to/video.mp4"
 
@@ -33,7 +33,7 @@ command = ['ffmpeg',
            '-f', 'rtsp',
            '-rtsp_transport', 'tcp',
            '-muxdelay', '0.1',
-           rtsp_url]
+           stream_url]
 
 try:
     p = sp.Popen(command, stdin=sp.PIPE)

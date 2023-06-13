@@ -49,7 +49,7 @@ from utils.general import (LOGGER, Profile, check_file, check_img_size, check_re
                            increment_path, non_max_suppression, print_args, scale_boxes, strip_optimizer, xyxy2xywh)
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, smart_inference_mode
-
+import threading
 import argparse
 import src.image_processor.logging_utils as logging_utils
 import os
@@ -109,7 +109,7 @@ def run_inference_model(
         logging_utils.logError(1, "File input is not supported")
         logging_utils.logShutdown()
         return
-    is_url = source.lower().startswith(('rtsp://', 'rtmp://', 'http://', 'https://'))
+    is_url = source.lower().startswith(('rtsp://', 'rtsps://'))
     webcam = source.isnumeric() or source.endswith(
         '.streams') or (is_url and not is_file)
 
@@ -142,11 +142,10 @@ def run_inference_model(
             dataset = LoadImages(source, img_size=imgsz,
                                  stride=stride, auto=pt, vid_stride=vid_stride)
 
-        callback_executor.submit(on_stream_started)
 
         logging_utils.logSuccess(2, "Got feed from the input")
     except Exception as e:
-        logging_utils.logError(2, "Failed to get feed from the input")
+        logging_utils.logError(2, "Failed to get feed from the input")  #TODO: exceptions are not caught here
         logging_utils.logShutdown()
         raise e
 
@@ -188,6 +187,7 @@ def run_inference_model(
                     destination_stream_url, im0.shape[1], im0.shape[0], FPS)
                 logging_utils.logSuccess(3, "Streamer object created")
                 streamer.start_stream()
+                callback_executor.submit(on_stream_started)
                 logging_utils.logSuccess(4, "Streamer object started")
 
             s += '%gx%g ' % im.shape[2:]  # print string
@@ -310,10 +310,20 @@ async def main(opt):
 
     media_server_cfg = worker_cfg["MEDIA_SERVER"]
 
-    source_path = opt.source.split(":")[3].split("/")[1]
-    destination_stream_url = f"rtsp://{media_server_cfg['destination_host']}:8554/{source_path}/detected"
+    source_path = opt.source.split("/", 3)[3]
+    print(media_server_cfg['secure'])
+    if media_server_cfg['secure'] == "True":
+        destination_port = media_server_cfg['rtsps_port']
+        protocol = "rtsps"
+    else:
+        destination_port = media_server_cfg['rtsp_port']
+        protocol = "rtsp"
 
-    destination_authed_stream_url = destination_stream_url.replace("rtsp://", f"rtsp://{media_server_cfg['write_user']}:{media_server_cfg['write_password']}@")
+
+
+    destination_stream_url = f"{protocol}://{media_server_cfg['destination_host']}:{destination_port}/{source_path}/detected"
+
+    destination_authed_stream_url = destination_stream_url.replace(f"{protocol}://", f"{protocol}://{media_server_cfg['write_user']}:{media_server_cfg['write_password']}@")
 
     logging.info("Destination URL: %s", destination_stream_url)
     logging.info("Connecting to %s", database_url)
@@ -338,7 +348,6 @@ async def main(opt):
             metrics_service)
         on_detection_started = callbacks.get_on_stream_started_callback(
             processed_service,destination_stream_url)
-        logging.info(on_detection_started)
         # Blocks the main thread, calling the callback functions in another
         run_inference_model(
             **vars(opt),
@@ -346,7 +355,12 @@ async def main(opt):
             on_stream_started=on_detection_started,
             destination_stream_url=destination_authed_stream_url
         )
+        try:
+            # Make sure the processed stream url is not on the database as it is not being used anymore
+            processed_service.save_processed_stream(None)
 
+        except Exception as e:
+            logging.error("Error making db consistent: %s", e)
     logging.info("Finished closing connection pool.")
 
 if __name__ == '__main__':

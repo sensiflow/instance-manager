@@ -7,3 +7,4 @@ class ResponseStatus(Enum):
     NotFound = auto()
     InternalError = auto()
     Conflict = auto()
+    InconsistentContainerState = auto()

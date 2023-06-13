@@ -31,7 +31,7 @@ class MessageHandler:
         self.instance_service = instance_service
         self.instance_ack_exchange_name = "instance_ack_exchange"
 
-    async def send(
+    async def send(#TODO: do not use action to diferentiate the queues,  use just one queue and use the status to diferentiate what to do
             self,
             response_message,
             response_status,
@@ -131,7 +131,8 @@ class MessageHandler:
             ResponseStatus.BadRequest: 4000,
             ResponseStatus.NotFound: 4004,
             ResponseStatus.Conflict: 4009,
-            ResponseStatus.InternalError: 5000
+            ResponseStatus.InternalError: 5000,
+            ResponseStatus.InconsistentContainerState: 5001
         }
         return mapper[status]
 
