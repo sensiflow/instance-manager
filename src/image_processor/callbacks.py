@@ -1,4 +1,5 @@
 import logging
+import time
 from src.image_processor.metric.metrics_service import DetectionMetricsService
 
 """
@@ -17,7 +18,7 @@ def get_on_metric_received_callback(metrics_service: DetectionMetricsService):
         except Exception as e:
             logger.error("Error saving metric: %s", e)
 
-    return on_metric_received
+    return ThrottledCallback(on_metric_received, 1)
 
 
 def get_on_stream_started_callback(processed_stream_service, stream_url):
@@ -28,3 +29,16 @@ def get_on_stream_started_callback(processed_stream_service, stream_url):
         except Exception as e:
             logger.error("Error saving processed stream: %s" % e)
     return on_stream_started
+
+
+class ThrottledCallback:
+    def __init__(self, callback, interval_seconds):
+        self.callback = callback
+        self.interval_seconds = interval_seconds
+        self.last_called = None
+
+    def __call__(self, *args, **kwargs):
+        current_time = time.time()
+        if current_time - self.last_executed >= self.interval:
+            self.callback(*args, **kwargs)
+            self.last_executed = current_time
