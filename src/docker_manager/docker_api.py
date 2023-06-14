@@ -1,6 +1,8 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import functools
+from datetime import datetime
+
 import docker
 import logging
 from docker.errors import APIError, DockerException, NotFound
@@ -193,7 +195,7 @@ class DockerApi:
         logger.info(f"Creating container {container_name}")
         # run dockerfile with name
         try:
-            if self.processing_mode == ProcessingMode.CPU:
+            if ProcessingMode[self.processing_mode.name] == ProcessingMode.CPU:
                 args = ["--device", "cpu"]
             else:
                 args = ["--device", "0"]
@@ -244,7 +246,8 @@ class DockerApi:
         logger.info(f"Waiting for goals in container {container.name}")
 
         def goal_reached(container):
-            for line in container.logs(stream=True):
+
+            for line in container.logs(stream=True, follow=True, tail=5): # We only care about the last 10 lines
                 decodedLine = line.decode("utf-8")
                 logger.info(decodedLine)
 

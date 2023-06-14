@@ -18,6 +18,7 @@ def get_on_metric_received_callback(metrics_service: DetectionMetricsService):
         except Exception as e:
             logger.error("Error saving metric: %s", e)
 
+
     return ThrottledCallback(on_metric_received, 1)
 
 
@@ -31,6 +32,7 @@ def get_on_stream_started_callback(processed_stream_service, stream_url):
     return on_stream_started
 
 
+
 class ThrottledCallback:
     def __init__(self, callback, interval_seconds):
         self.callback = callback
@@ -39,6 +41,9 @@ class ThrottledCallback:
 
     def __call__(self, *args, **kwargs):
         current_time = time.time()
-        if current_time - self.last_executed >= self.interval:
+        if self.last_called is None or current_time - self.last_called >= self.interval_seconds:
+            if self.last_called is not None:
+                logging.info("Current time: %s", current_time - self.last_called)
+                logging.info("Interval: %s", self.interval_seconds)
             self.callback(*args, **kwargs)
-            self.last_executed = current_time
+            self.last_called = current_time
