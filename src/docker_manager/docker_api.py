@@ -40,7 +40,7 @@ class DockerApi:
     def _get_device_requests(self):
         if ProcessingMode[self.processing_mode.name] == ProcessingMode.CPU:
             return []
-        elif ProcessingMode[self.processing_mode.name] == ProcessingMode.GPU:
+        if ProcessingMode[self.processing_mode.name] == ProcessingMode.GPU:
             # cont -1 is ALL GPUs
             return [types.DeviceRequest(count=-1, capabilities=[["gpu"]])]
 
@@ -193,7 +193,7 @@ class DockerApi:
         logger.info(f"Creating container {container_name}")
         # run dockerfile with name
         try:
-            if self.processing_mode == ProcessingMode.CPU:
+            if ProcessingMode[self.processing_mode.name] == ProcessingMode.CPU:
                 args = ["--device", "cpu"]
             else:
                 args = ["--device", "0"]

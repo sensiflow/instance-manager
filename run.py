@@ -34,6 +34,15 @@ async def main():
         f"@{database_cfg['host']}:{database_cfg['port']}"
     )
 
+    # if no file at /docker/models/yolov5s.pt download it
+    logging.info("Checking if yolov5s.pt exists")
+    if not os.path.isfile('./docker/models/yolov5s.pt'):
+        os.mkdir("./docker/models/")
+        logging.info("Downloading yolov5s.pt")
+        r = requests.get(yolov5ModelURL, allow_redirects=True)
+        open('./docker/models/yolov5s.pt', 'wb').write(r.content)
+        logging.info("Downloaded yolov5s.pt")
+
     hardware_acceleration_cfg = app_cfg["hardware_acceleration"]
     docker_build_args = docker_init.build_settings(hardware_acceleration_cfg)
     docker_init.build_images(docker_build_args)
@@ -41,15 +50,6 @@ async def main():
     hardware_accel_mode = hardware_acceleration_cfg["processing_mode"]
     docker_processing_mode = ProcessingMode[hardware_accel_mode]
     # TODO: Fazer constante para o min_size
-
-    # if no file at /docker/models/yolov5s.pt download it
-    logging.info("Checking if yolov5s.pt exists")
-    if not os.path.isfile('./docker/models/yolov5s.pt'):
-        logging.info("Downloading yolov5s.pt")
-        r = requests.get(yolov5ModelURL, allow_redirects=True)
-        open('./docker/models/yolov5s.pt', 'wb').write(r.content)
-        logging.info("Downloaded yolov5s.pt")
-
 
     async with AsyncConnectionPool(database_url, min_size=5) as conn_manager:
         instance_service = InstanceService(

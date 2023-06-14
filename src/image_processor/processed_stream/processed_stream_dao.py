@@ -3,7 +3,7 @@ from src.image_processor.processed_stream.processed_stream import (
 
 
 class ProcessedStreamDAOFactory:
-    """Factory for creating InstanceDAO objects."""
+    """Factory for creating ProcessedStreamDAO objects."""
 
     def create_dao(self, cursor):
         return ProcessedStreamDAO(cursor)

@@ -2,7 +2,7 @@ from src.image_processor.metric.detection_metric import DetectionMetric
 
 
 class MetricDAOFactory:
-    """Factory for creating InstanceDAO objects."""
+    """Factory for creating MetricDAO objects."""
 
     def create_dao(self, cursor):
         return MetricDAO(cursor)

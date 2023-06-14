@@ -1,6 +1,6 @@
 import datetime
 from src.instance_manager.instance.instance import Instance
-from typing import Optional
+from typing import Optional, List
 
 from src.instance_manager.instance.instance import InstanceStatus
 
@@ -37,16 +37,26 @@ class InstanceDAO:
             )
         return None
 
-    async def get_all_instances(self) -> Optional[Instance]:
+    async def get_all_instances(self) -> list[Instance]:
         query = """
         SELECT id, status, created_at, updated_at
         FROM instance
         """
         await self.cursor.execute(query)
-        instances = self.cursor.fetchall()
-        if instances is not None:
-            return instances
-        return None
+        rows = await self.cursor.fetchall()
+        instances = []
+        for row in rows:
+            instance_id, status, created_at, updated_at = row
+            instances.append(
+                Instance(
+                    id=instance_id,
+                    status=InstanceStatus[status],
+                    created_at=created_at,
+                    updated_at=updated_at
+                )
+            )
+        return instances
+
 
     async def create_instance(self, instance: Instance) -> int:
         query = """

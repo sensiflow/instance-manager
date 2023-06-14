@@ -18,20 +18,18 @@ logger = logging.getLogger(__name__)
 class MessageHandler:
     def __init__(
             self,
-            delete_queue_name,
             status_queue_name,
             controller_queue_name,
             rabbitmq_client,
             instance_service
     ):
-        self.delete_queue_name = delete_queue_name
         self.status_queue_name = status_queue_name
         self.controller_queue_name = controller_queue_name
         self.rabbitmq_client = rabbitmq_client
         self.instance_service = instance_service
         self.instance_ack_exchange_name = "instance_ack_exchange"
 
-    async def send(#TODO: do not use action to diferentiate the queues,  use just one queue and use the status to diferentiate what to do
+    async def send(
             self,
             response_message,
             response_status,
@@ -46,10 +44,6 @@ class MessageHandler:
                 device_id: device id of the message.
                 action: action that was executed on the instance.
         """
-        routing_key = self.delete_queue_name \
-            if action.value == Action.REMOVE.value \
-            else self.status_queue_name
-
         action_name = action.name if action else None
 
         ack_message = CtlAcknowledgeMessage(
@@ -60,7 +54,7 @@ class MessageHandler:
         )
 
         await self.rabbitmq_client.send_message(
-            routing_key=routing_key,
+            routing_key=self.status_queue_name,
             exchange_name=self.instance_ack_exchange_name,
             message=asdict(ack_message)
         )
