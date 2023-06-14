@@ -13,6 +13,11 @@ This is the image processor for the Sensi App.
 
 Some test scripts for streaming camera / video feed to the media server can be found at `./scripts/test/`.
 
+These scripts can take the following arguments:
+- host: The host of the media server. It can be either an IP address or a domain name.
+- Safe: If set to True, the script will use HTTPS to stream the video feed. If set to False, the script will use HTTP. Notice that the media server must be configured to use HTTPS.
+- path: The path to the video feed.
+
 If the media server is using user and password authentication the url must follow the format:
 
 ```
