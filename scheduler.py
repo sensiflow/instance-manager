@@ -69,6 +69,17 @@ async def main():
         f"@{database_cfg['host']}:{database_cfg['port']}"
     )
 
+    rabbit_cfg = app_cfg["rabbitmq"]
+
+    rbt_user = rabbit_cfg["user"]
+    rbt_pass = rabbit_cfg["password"]
+    rbt_host = rabbit_cfg["host"]
+    rbt_port = rabbit_cfg["port"]
+    rbt_scheduler_notification_queue_name = rabbit_cfg["instance_scheduler_notification"]
+
+    rabbit_url = f"amqp://{rbt_user}:{rbt_pass}@{rbt_host}:{rbt_port}/"
+    logger.debug(f"RabbitMQ Built URL: {rabbit_url}")
+
     async with AsyncConnectionPool(database_url) as connection_manager:
         docker_api = DockerApi(None, ProcessingMode.CPU)
 
@@ -79,17 +90,6 @@ async def main():
             docker_api
         )
 
-        rabbit_cfg = app_cfg["rabbitmq"]
-
-        rbt_user = rabbit_cfg["user"]
-        rbt_pass = rabbit_cfg["password"]
-        rbt_host = rabbit_cfg["host"]
-        rbt_port = rabbit_cfg["port"]
-        rbt_ack_status_queue_name = rabbit_cfg["ack_status_queue"]
-
-        rabbit_url = f"amqp://{rbt_user}:{rbt_pass}@{rbt_host}:{rbt_port}/"
-        logger.debug(f"RabbitMQ Built URL: {rabbit_url}")
-
         rb_connection_manager = AsyncRabbitMQManager(rabbit_url)
         rabbit_client = AsyncRabbitMQClient(rb_connection_manager)
 
@@ -98,7 +98,7 @@ async def main():
             InstanceDAOFactory(),
             docker_api,
             rabbit_client,
-            rbt_ack_status_queue_name
+            rbt_scheduler_notification_queue_name
         )
 
         scheduler = Scheduler(
