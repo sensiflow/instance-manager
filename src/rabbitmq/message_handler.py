@@ -1,9 +1,11 @@
 from dataclasses import asdict
 import json
+from typing import Callable, Awaitable
+
 from src.exceptions import AppError
 from src.instance_manager.instance.exceptions import (
     InstanceAlreadyExists,
-    InstanceNotFound
+    InstanceNotFound, EndMessageProcessing
 )
 from src.instance_manager.message import message_dispatcher
 from src.instance_manager.message.input_message import InputMessage
@@ -31,7 +33,8 @@ class MessageHandler:
         self.instance_service = instance_service
         self.instance_ack_exchange_name = "instance_ack_exchange"
 
-    async def send(#TODO: do not use action to diferentiate the queues,  use just one queue and use the status to diferentiate what to do
+    async def send(
+            # TODO: do not use action to diferentiate the queues,  use just one queue and use the status to diferentiate what to do
             self,
             response_message,
             response_status,
@@ -65,9 +68,46 @@ class MessageHandler:
             message=asdict(ack_message)
         )
 
-    async def process_message(
+    async def __process_unique_message(
             self,
-            received_message
+            input_message: InputMessage,
+    ):
+        """
+            Function use for processing messages that are unique to an instance.
+        """
+        await message_dispatcher(input_message, self.instance_service)
+
+    async def __process_shared_message(
+            self,
+            input_message: InputMessage,
+            device_id: int,
+            onACK: Callable[[], Awaitable[None]]
+    ):
+        """
+            Function use for processing messages that are shared between other instances.
+        """
+        if not await self.instance_service.validate_instance(device_id):
+            # Discard message if the instance does not exist, but send ack anyway, this message is not for us
+            logger.warning("Instance does not exist. Discarding message...")
+            await onACK()
+            raise EndMessageProcessing()
+
+        await message_dispatcher(input_message, self.instance_service)
+
+    async def process_shared_messages(
+            self,
+            received_message):
+        await self._process_message(received_message, True,)
+
+    async def process_unique_messages(
+            self,
+            received_message):
+        await self._process_message(received_message, False)
+
+    async def _process_message(
+            self,
+            received_message,
+            is_shared: bool = False
     ):
         """
             Callback function for processing received messages from RabbitMQ.
@@ -80,7 +120,13 @@ class MessageHandler:
             device_id = input_message.device_id
             action = input_message.action
 
-            await message_dispatcher(input_message, self.instance_service)
+            if not is_shared:
+                await self.__process_unique_message(input_message)
+            else:
+                try:
+                    await self.__process_shared_message(input_message, device_id, received_message.ack)
+                except EndMessageProcessing:
+                    return
 
             await self.send(
                 response_status=ResponseStatus.Ok,

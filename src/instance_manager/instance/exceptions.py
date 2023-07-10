@@ -13,6 +13,12 @@ class InstanceAlreadyExists(AppError):
         super().__init__(self.message)
 
 
+class EndMessageProcessing(AppError):
+    def __int__(self):
+        self.message = "End message processing"
+        super().__init__(self.message)
+
+
 class InternalError(Exception):
     def __init__(self, message):
         self.message = message

@@ -38,7 +38,7 @@ async def stop_instance(message: InputMessage, service: InstanceService):
             InternalError
     """
     logging.info(f"Stopping instance {message.device_id}")
-    await service.stop_instance(message.device_id)
+    await service.remove_instance(message.device_id)
 
 
 async def pause_instance(message: InputMessage, service: InstanceService):
@@ -68,6 +68,18 @@ async def remove_instance(message: InputMessage, service: InstanceService):
     """
     logging.info(f"Removing instance {message.device_id}")
     await service.remove_instance(message.device_id)
+
+async def validate_instance(message: InputMessage, service: InstanceService):
+    """
+        Validates if the instance exists in the docker host.
+        Parameters:
+            message: The message that was received from the queue.
+            service: The instance service.
+        Returns:
+            True if the instance exists, False otherwise.
+    """
+    logging.info(f"Validating instance {message.device_id}")
+    await service.validate_instance(message.device_id)
 
 dispatcher = {
     Action.START: create_instance,

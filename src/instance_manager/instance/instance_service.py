@@ -295,6 +295,21 @@ class InstanceService:
             except (DockerException, APIError) as e:
                 raise InternalError(e)
 
+    async def validate_instance(self, instance_id: int):
+        """
+            Validates if the instance exists.
+            Parameters:
+                instance_id: The id of the instance to validate.
+            Returns:
+                True if the instance exists, False otherwise.
+        """
+        try:
+            await self.docker_api.get_container(self.build_instance_name(instance_id))
+            return True
+        except ContainerNotFound:
+            return False
+
+
     @staticmethod
     def build_instance_name(instance_id: int) -> str:
         return f"instance-{instance_id}"

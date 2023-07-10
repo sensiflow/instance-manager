@@ -4,6 +4,8 @@ import functools
 import json
 import logging
 import aio_pika
+
+from rabbitmq.constants import QUEUE_PREFIX
 from src.rabbitmq.async_rabbitmq_manager import AsyncRabbitMQManager
 
 logger = logging.getLogger(__name__)
@@ -82,3 +84,22 @@ class AsyncRabbitMQClient:
                 ),
                 routing_key
             )
+
+    async def register_queue(self, queue_name, exchange_name):
+        """
+            Registers a queue to the RabbitMQ exchange.
+            This queue will be automatically deleted when the connection is
+            closed.
+            Parameters:
+                queue_name (str): The name of the queue to register.
+                exchange_name (str): The name of the exchange to register the
+        """
+        async with self.manager.channel_pool.acquire() as channel:
+            name = f"{QUEUE_PREFIX}_{queue_name}"
+            queue = await channel.declare_queue(
+                name,
+                durable=True,
+                auto_delete=True
+            )
+            await queue.bind(exchange_name, routing_key=f"{QUEUE_PREFIX}.#")
+            return name

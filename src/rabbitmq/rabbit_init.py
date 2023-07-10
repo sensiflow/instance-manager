@@ -1,8 +1,10 @@
+import asyncio
 import logging
 from src.instance_manager.instance.instance_service import InstanceService
 from src.rabbitmq.async_rabbitmq_manager import AsyncRabbitMQManager
 from src.rabbitmq.message_handler import MessageHandler
 from src.rabbitmq.rabbitmq_client import AsyncRabbitMQClient
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +36,20 @@ async def consume_control_messages(
         instance_service,
     )
 
-    await rabbit_client.start_consumer(
-        ctl_queue_name=rbt_controller_queue_name,
-        async_message_handler=message_handler.process_message
+    receive_queue_name = str(uuid.uuid4())
+    queue_name = await rabbit_client.register_queue(
+        queue_name= receive_queue_name,
+        exchange_name=f"{rbt_controller_queue_name}_exchange",
+    )
+    logger.info("Created dedicated queue...")
+
+    await asyncio.gather(
+        rabbit_client.start_consumer(
+            ctl_queue_name=rbt_controller_queue_name,
+            async_message_handler=message_handler.process_unique_messages
+        ),
+        rabbit_client.start_consumer(
+            ctl_queue_name=queue_name,
+            async_message_handler=message_handler.process_shared_messages
+     )
     )
