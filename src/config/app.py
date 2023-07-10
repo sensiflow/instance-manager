@@ -12,7 +12,7 @@ from src.config import (
     RABBITMQ_PASSWORD_KEY,
     RABBITMQ_CONTROLLER_QUEUE_KEY,
     RABBITMQ_ACK_STATUS_QUEUE_KEY,
-    RABBITMQ_ACK_DELETE_QUEUE_KEY,
+    RABBITMQ_SCHEDULER_NOTIFICATION_KEY,
     HARDWARE_ACCELERATION_SECTION,
     HARDWARE_ACCELERATION_PROCESSING_MODE_KEY,
     HARDWARE_ACCELERATION_CUDA_VERSION_KEY,
@@ -21,6 +21,7 @@ from src.config import (
     MEDIA_SERVER_WRITE_USER_KEY,
     MEDIA_SERVER_WRITE_PASSWORD_KEY,
 )
+from src.config.constants import RABBITMQ_SCHEDULER_NOTIFICATION_KEY
 
 
 def get_app_config(config_parser):
@@ -51,9 +52,9 @@ def get_app_config(config_parser):
             RABBITMQ_SECTION,
             RABBITMQ_ACK_STATUS_QUEUE_KEY
         ),
-        "ack_delete_queue": config_parser.get(
+        "instance_scheduler_notification": config_parser.get(
             RABBITMQ_SECTION,
-            RABBITMQ_ACK_DELETE_QUEUE_KEY
+            RABBITMQ_SCHEDULER_NOTIFICATION_KEY
         )
     }
 

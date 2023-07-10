@@ -4,12 +4,12 @@ Image Processor for Sensi App
 
 This is the image processor for the Sensi App.
 
-// TODO: Add more information about the project
-// Enumerate the sections of the README
 
 ## Getting Started
 
 #### Test scripts
+
+To run the test scripts it is required to have ffmpeg installed, it can be obtained from : https://ffmpeg.org/download.html
 
 Some test scripts for streaming camera / video feed to the media server can be found at `./scripts/test/`.
 
@@ -33,13 +33,23 @@ python webcam_stream.py --host=admin:admin@localhost --Safe=True --path=test
 
 ### Prerequisites
 
-### Installing
+Have poetry installed.
 
-### Running the tests
+### Installing
 
 ### Running the application
 
+This component is comprised of two executables
+Each executable has the capacity to receive an argument, the ENVIRONMENT name, which dictates the config to use
 
+- `run-instance-manager.bat`/`run-instance-manager.sh`
+- `run-scheduler.bat`/`run-scheduler.sh`
+
+These can be ran inside a poetry shell.
+
+#### Instruction to run the executables
+
+Open a cmd/terminal , run `poetry shell` and run the executable.
 
 
 ### Configs

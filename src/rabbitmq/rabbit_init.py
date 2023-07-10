@@ -21,7 +21,6 @@ async def consume_control_messages(
     rbt_port = consumer_info["port"]
     rbt_controller_queue_name = consumer_info["controller_queue"]
     rbt_ack_status_queue_name = consumer_info["ack_status_queue"]
-    rbt_ack_delete_queue_name = consumer_info["ack_delete_queue"]
 
     rabbit_url = f"amqp://{rbt_user}:{rbt_pass}@{rbt_host}:{rbt_port}/"
     logger.debug(f"RabbitMQ Built URL: {rabbit_url}")
@@ -29,7 +28,6 @@ async def consume_control_messages(
     connection_manager = AsyncRabbitMQManager(rabbit_url)
     rabbit_client = AsyncRabbitMQClient(connection_manager)
     message_handler = MessageHandler(
-        rbt_ack_delete_queue_name,
         rbt_ack_status_queue_name,
         rbt_controller_queue_name,
         rabbit_client,

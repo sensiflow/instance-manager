@@ -42,7 +42,7 @@ class DockerApi:
     def _get_device_requests(self):
         if ProcessingMode[self.processing_mode.name] == ProcessingMode.CPU:
             return []
-        elif ProcessingMode[self.processing_mode.name] == ProcessingMode.GPU:
+        if ProcessingMode[self.processing_mode.name] == ProcessingMode.GPU:
             # cont -1 is ALL GPUs
             return [types.DeviceRequest(count=-1, capabilities=[["gpu"]])]
 
