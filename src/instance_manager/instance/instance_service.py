@@ -197,8 +197,9 @@ class InstanceService:
 
                 await processed_stream_dao.delete_processed_stream(instance_id)
 
-                await self.docker_api.stop_container(
-                    self.build_instance_name(instance_id)
+                await self.docker_api.remove_container(
+                    self.build_instance_name(instance_id),
+                    force=True
                 )
             except ContainerNotFound:
                 raise InstanceNotFound(instance_id)

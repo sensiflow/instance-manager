@@ -90,7 +90,7 @@ class MessageHandler:
     async def process_shared_messages(
             self,
             received_message):
-        await self._process_message(received_message, True,)
+        await self._process_message(received_message, True)
 
     async def process_unique_messages(
             self,

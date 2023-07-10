@@ -38,7 +38,7 @@ async def stop_instance(message: InputMessage, service: InstanceService):
             InternalError
     """
     logging.info(f"Stopping instance {message.device_id}")
-    await service.remove_instance(message.device_id)
+    await service.stop_instance(message.device_id)
 
 
 async def pause_instance(message: InputMessage, service: InstanceService):
