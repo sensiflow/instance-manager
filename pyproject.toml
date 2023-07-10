@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "image-processor"
 version = "0.1.0"
-description = "Image processor for the sensi app."
+description = "Image processor for the sensiflow system."
 authors = ["Francisco Costa <A48282@alunos.isel.pt>", "Teodosie Pienescu <A48267@alunos.isel.pt>", "Tiago Filipe <A48265@alunos.isel.pt>"]
 license = "LICENSE"
 readme = "README.md"
@@ -9,11 +9,13 @@ packages = [{include = "image_processor", from = "src"}]
 
 [tool.poetry.dependencies]
 python = "^3.8.1"
-mypy = "^1.1.1"
 tox = "^4.4.7"
 flake8 = "^6.0.0"
 psycopg = {extras = ["binary"], version = "^3.1.8"}
 pytest-env = "^0.8.1"
+aio-pika = "^9.0.5"
+docker = "^6.0.1"
+psycopg-pool = "^3.1.7"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.2.2"
