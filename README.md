@@ -1,39 +1,13 @@
 # image-processor
 
-Image Processor for Sensi App
-
-This is the image processor for the Sensi App.
-
+This is the image processor module for the Sensiflow system.
 
 ## Getting Started
-
-#### Test scripts
-
-To run the test scripts it is required to have ffmpeg installed, it can be obtained from : https://ffmpeg.org/download.html
-
-Some test scripts for streaming camera / video feed to the media server can be found at `./scripts/test/`.
-
-These scripts can take the following arguments:
-- host: The host of the media server. It can be either an IP address or a domain name.
-- Safe: If set to True, the script will use HTTPS to stream the video feed. If set to False, the script will use HTTP. Notice that the media server must be configured to use HTTPS.
-- path: The path to the video feed.
-
-If the media server is using user and password authentication the url must follow the format:
-
-```
-rtsp://user:password@host:port/path
-```
-
-Example usages of the test scripts:
-
-```bash
-python webcam_stream.py --host=admin:admin@localhost --Safe=True --path=test 
-```
-
 
 ### Prerequisites
 
 Have poetry installed.
+Have python 3.8 installed.
 
 ### Installing
 
@@ -50,7 +24,6 @@ These can be ran inside a poetry shell.
 #### Instruction to run the executables
 
 Open a cmd/terminal , run `poetry shell` and run the executable.
-
 
 ### Configs
 
@@ -85,7 +58,7 @@ PROCESSING_MODE= * # Could be either GPU or CPU
 CUDA_VERSION= *  # Not necessary if PROCESSING_MODE=CPU
 ```
 
-Format of the image processor config file:
+Format of the worker config file:
 
 ```ini
 [DATABASE]
@@ -105,7 +78,35 @@ SECURE = ? # Default: False
 
 ```
 
+
+#### Test scripts
+
+The repository contains some test scripts to create virtual cameras from webcams or even video files.
+
+To run the test scripts it is required to have ffmpeg installed, if not download it (here)[https://ffmpeg.org/download.html)
+
+Some test scripts for streaming camera / video feed to the media server can be found at `./scripts/test/`.
+
+These scripts can take the following arguments:
+- host: The host of the media server. It can be either an IP address or a domain name.
+- Safe: If set to True, the script will use HTTPS to stream the video feed. If set to False, the script will use HTTP. Notice that the media server must be configured to use HTTPS.
+- path: The path to the video feed.
+
+If the media server is using user and password authentication the url must follow the format:
+
+```
+rtsp://user:password@host:port/path
+```
+
+Example usages of the test scripts:
+
+```bash
+python webcam_stream.py --host=admin:admin@localhost --Safe=True --path=test 
+```
+
+
 #### Media Server Authentication
 
 This process is handled by the image processor.
 The credentials are configured in the config file `./config/worker.ini` under the section.
+
