@@ -78,6 +78,11 @@ SECURE = ? # Default: False
 
 ```
 
+#### Media Server Authentication
+
+This process is handled by the image processor.
+The credentials are configured in the config file `./config/worker.ini` under the section.
+
 
 #### Test scripts
 
@@ -103,10 +108,3 @@ Example usages of the test scripts:
 ```bash
 python webcam_stream.py --host=admin:admin@localhost --Safe=True --path=test 
 ```
-
-
-#### Media Server Authentication
-
-This process is handled by the image processor.
-The credentials are configured in the config file `./config/worker.ini` under the section.
-
