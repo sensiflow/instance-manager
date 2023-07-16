@@ -83,7 +83,7 @@ SECURE = ? # Default: False
 
 The repository contains some test scripts to create virtual cameras from webcams or even video files.
 
-To run the test scripts it is required to have ffmpeg installed, if not download it [here](https://ffmpeg.org/download.html)
+To run the test scripts it is required to have ffmpeg installed. Download it [here](https://ffmpeg.org/download.html)
 
 Some test scripts for streaming camera / video feed to the media server can be found at `./scripts/test/`.
 
